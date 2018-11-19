@@ -1,0 +1,6 @@
+Options +FollowSymLinks
+RewriteEngine on
+
+#start new for redesign
+RewriteRule ^tools$  /tools/  [R]
+RewriteRule ^tools/$ index\.php?state=tools
