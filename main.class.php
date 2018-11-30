@@ -19,9 +19,31 @@ class main{
       $templates->addNewUser();
       break;
 
+      case "edituser":
+      $templates->editUser();
+      break;
+
+      case "deleteUser":
+      $templates->deleteUser();
+      break;
+
+      case "deleteFile":
+      $templates->deleteFile($_REQUEST["fileID"]);
+      break;
+
       case "processUpload":
       $templates->processUpload();
       //exit();
+      break;
+
+      case "addsubject":
+
+      $templates->addSubject();
+      //exit();
+      break;
+
+      case "match":
+      $templates->match();
       break;
 
       default:
@@ -73,6 +95,10 @@ class main{
 
       case "manageUsers":
       $templates->manageUsers();
+      break;
+
+      case "docs":
+      $templates->docs();
       break;
 
 

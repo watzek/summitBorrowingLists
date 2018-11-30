@@ -5,23 +5,19 @@ include("utilities.class.php");
 class templates extends utilities{
 
   function __construct($mysql){
-
     $this->mysql=$mysql;
-
-
-
-
   }
 
   function home(){
 
     $this->breadcrumb("home");
 
+
     if (isset($_SESSION["validUser"]) && $_SESSION["validUser"]==true){
       if (isset($_SESSION["flash"]) && $_SESSION["flash"]==true){$this->flashMessage();}
 
-      $this->azBox();
-      $this->allSubjectsBox();
+      $this->azBox($_SESSION["instID"]);
+      $this->allSubjectsBox($_SESSION["instID"]);
 
       $this->userManagement();
       //var_dump($_SESSION);
@@ -30,6 +26,48 @@ class templates extends utilities{
     else{
       $this->hello();
     }
+
+  }
+
+  function docs(){
+    ?>
+    <div class="card mb-3">
+      <div class="card-header">
+        <i class="fa fa-info"></i> Docs / Help</div>
+      <div class="card-body">
+
+
+      <p style="margin-top: 30px;">Rough outline:</p>
+      <ul>
+        <li>Create Users</li>
+        <li>Create Subjects</li>
+        <li>Get Alma Analytics reports</li>
+        <li>Load & process reports</li>
+        <li>Match requests to subjects</li>
+      </ul>
+
+      </div>
+      <div class="card-footer small text-muted"></div>
+    </div>
+
+    <div class="card">
+  <h5 class="card-header">Step 1 - Create Users</h5>
+  <div class="card-body">
+    <!--<h5 class="card-title">Special title treatment</h5>-->
+    <div class="alert alert-info" role="alert">
+    <p class="card-text">Creating users allows you to later associate subjects with users, and will let them login with their own Google account.</p>
+  </div>
+    <ol>
+      <li>Click "Manage Users" in the left-hand menu.</li>
+      <li>In the User Management box, click "Add User".</li>
+      <li>Enter the user's full name and email address, then click Submit. Note: email MUST be a GMail address!</li>
+      <li>Repeat this step as needed to create more users for your organization.</li>
+    </ol>
+  </div>
+</div>
+
+<?php
+
 
   }
 
@@ -80,10 +118,11 @@ class templates extends utilities{
 
   function letter($letter){
     $mysql=$this->mysql;
-    $rows=$mysql->getAllByLetter($letter);
+    $instID=$_SESSION["instID"];
+    $rows=$mysql->getAllByLetter($letter, $instID);
     $count=number_format(count($rows));
     $title="Requests - $letter ($count)";
-    $pcdata=$mysql->getPieChartForLetterData($letter);
+    $pcdata=$mysql->getPieChartForLetterData($letter, $instID);
     $data=array();
     $labels=array();
     foreach ($pcdata as $pc){
@@ -98,25 +137,30 @@ class templates extends utilities{
 
     if ($letter=="dewey"){
       $this->breadcrumb("Dewey");
-      $this->azBox();
+      $this->azBox($_SESSION["instID"]);
       $this->table($rows, $title, $dewey=true);
     }
     else{
       $this->breadcrumb($letter);
-      $this->azBox();
+      $this->azBox($_SESSION["instID"]);
 
       $this->table($rows, $title);
       ?><div class="row">
       <div class="col-lg-8">
 <?php
-$areaData=$mysql->getAreaChartDataByLetter($letter);
-$formatted=$this->formatAreaChartData($areaData);
-$this->areaChart("letterAreaChart", "Borrowing over time", $formatted);
+$areaData=$mysql->getAreaChartDataByLetter($letter, $instID);
+//var_dump($areaData);
+if(count($areaData)>0){
+  $formatted=$this->formatAreaChartData($areaData);
+  $this->areaChart("letterAreaChart", "Borrowing over time", $formatted);
+}
 ?>
 
       </div>
       <div class="col-lg-4"><?php
+      if(count($data)>0){
       $this->pieChart("Requests within call number", $labels, $data, "myPieChart");
+    }
       ?></div><?php
       ?></div><?php
     }
@@ -155,8 +199,10 @@ $this->areaChart("letterAreaChart", "Borrowing over time", $formatted);
 
     $mysql=$this->mysql;
 
-    $this->breadcrumb("Subjects", $level=null);
-    $this->allSubjectsBox();
+    $this->breadcrumb("Manage Subjects", $level=null);
+    if (isset($_SESSION["flash"]) && $_SESSION["flash"]==true){$this->flashMessage();}
+    //$this->allSubjectsBox($_SESSION["instID"]);
+    $this->manageSubjectsBox($_SESSION["instID"]);
 
   }
 
@@ -176,6 +222,7 @@ $this->areaChart("letterAreaChart", "Borrowing over time", $formatted);
     else{
 
       $info=$mysql->getSubjectInfo($id);
+      //var_dump($info);
       $subject=$info[0]["subject"];
       $selector=$info[0]["selector"];
       $selector_id=$info[0]["selector_id"];
@@ -226,14 +273,22 @@ $this->areaChart("letterAreaChart", "Borrowing over time", $formatted);
       <div class="col-lg-8">
 
         <?php
+        if(count($areaData)>0){
         $formatted=$this->formatAreaChartData($areaData);
         $this->areaChart("subjectAreaChart", "Borrowing over time", $formatted);
+      }
 
       ?>
     </div>
+
+    <?php if(count($data)>0){ ?>
       <div class="col-lg-4"><?php
+
       $this->pieChart("Requests within subject", $labels, $data, "myPieChart");
       ?></div><?php
+      }
+
+
       ?></div><?php
 
 
@@ -281,32 +336,43 @@ $this->areaChart("letterAreaChart", "Borrowing over time", $formatted);
 
   function tools(){
     $mysql=$this->mysql;
+    $instID=$_SESSION["instID"];
+    $tbp=$mysql->getRequestsToBeProcessed($instID);
 
 
     //$needSubj=$c[0]["needSubj"];
     $this->breadcrumb("Tools");
 
     if (isset($_SESSION["flash"]) && $_SESSION["flash"]==true){$this->flashMessage();}
-    $status=$mysql->getStatuses();
+    $status=$mysql->getStatuses($instID);
 
     $report="";
 
   //  var_dump($status)
-;
-    $green=array("complete", "needSubj", "Dewey");
-    $yellow=array("new");
-    $red=array("102ta", "102oclc", "XMLerror");
-    foreach ($status as $stat){
-      $label=$stat["APIstatus"];
-      $c=number_format($stat["total"]);
-      if (in_array($label, $green)){$color="green"; $icon="check";}
-      if (in_array($label, $yellow)){$color="orange"; $icon="thumbs-up";}
-      if (in_array($label, $red)){$color="red"; $icon="exclamation-triangle";}
 
-      $report.="<p><i class='fa fa-$icon' style='color:$color'></i> $label: $c";
-      if ($color=="red" || $color=="orange"){$report.=" <a href='index.php?state=hunt&status=$label'>look for more</a>"; }
+    $green=array("complete", "needSubj", "Dewey");
+    $yellow=array("new", "oclc1", "ta", "oclc2", "isbn1", "isbn2");
+    $red=array("102ta", "102oclc", "XMLerror");
+    $black=array("unable to resolve");
+    $labels=array("ta"=>"Title & Author only", "oclc1"=>"Has OCLC number", "oclc2"=>"Has OCLC number", "isbn1"=>"Has ISBN", "isbn2"=>"Has ISBN", "unable to resolve"=>"Unable to find call number", "needSubj"=>"LC CN Found, not matched to subject", "Dewey"=>"Dewey Call Number Found", "complete"=>"Matched to subject");
+
+    foreach ($status as $stat){
+      $la=$stat["APIstatus"];
+      $label=$labels[$la];
+      $c=number_format($stat["total"]);
+      if (in_array($la, $green)){$color="green"; $icon="check";}
+      if (in_array($la, $yellow)){$color="orange"; $icon="search";}
+      if (in_array($la, $red)){$color="red"; $icon="exclamation-triangle";}
+      if (in_array($la, $black)){$color="black"; $icon="frown";}
+
+      $report.="<p><i class='fas fa-$icon' style='color:$color'></i> $label: $c";
+
+      if($la=="needSubj" && $c>0){ $report.=" | <a href='index.php?state=match&instID=$instID'>look for subject matches</a>";}
+
       $report.="</p>";
     }
+
+
 
 
 
@@ -315,6 +381,9 @@ $this->areaChart("letterAreaChart", "Borrowing over time", $formatted);
 
 <div class="row">
   <div class="col-lg-6">
+    <?php
+    #$this->summaryBox($_SESSION["instID"]);
+    ?>
 
     <div class="card mb-3">
       <div class="card-header">
@@ -323,12 +392,97 @@ $this->areaChart("letterAreaChart", "Borrowing over time", $formatted);
       <div class="card-body">
 
 
-        <?= $report;?>
+        <?php
+        echo $report;
+
+        if ($tbp>0){
+          ?>
+          <button id='hunt' class="btn btn-primary" type="button">Find call numbers for <?= $tbp?> Requests</button>
+
+          <div id='progressContainer' style='margin-top:20px;'>
+          <div class="progress" >
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%" id="progressBar"></div>
+          </div>
+        </div>
+          <script>
+
+          $("#hunt").click(function(){
+            localStorage.setItem("count", 0);
+            localStorage.setItem("check", "");
+
+            $(this).text("Searching...(0.0% complete)");
+            $(this).attr("disabled", true);
+            $.ajax({
+              method: "POST",
+              url: "background.php",
+              data: { instID: <?= $_SESSION["instID"];?>, fx: "start" }
+            });
+            //$(".progress").css("display", "inline");
+             search = setInterval(doStuff, 2000);
+
+
+          });
+          function doStuff() {
+
+            var t=<?= $tbp ?>
+
+
+            $.ajax({
+              method: "POST",
+              url: "background.php",
+              data: { instID: <?= $_SESSION["instID"];?>, fx: "checkProgress" }
+            })
+              .done(function( msg ) {
+
+
+                console.log(msg);
+                w=(1-(msg/t))*100;
+                console.log(w);
+                var rounded = Math.round( w * 10 ) / 10;
+
+              //  a=Math.floor(Math.random() * 100);
+                $("#progressBar").css("width", w+"%");
+                $("#hunt").text("Searching... ("+rounded+"% complete)");
+
+                if (!localStorage.check){localStorage.setItem("check", msg);}
+                if (!localStorage.count){localStorage.setItem("count", 1);}
+                else{
+                  if (msg==localStorage.check){localStorage.count= Number(localStorage.count)+1;}
+                  console.log(localStorage.count);
+                  if(localStorage.count>5){
+                    clearInterval(search);
+                    $("#progressContainer").html("<p>Sorry, there may be an issue with processing the current request. Refresh the page and try again.</p>");
+
+
+                  }
+
+                }
+
+
+                if(w==100){
+                  clearInterval(search);
+                  location.reload();
+                }
+
+              });
+
+          }
+
+          </script>
+          <?php
+        }
+
+        ?>
 
       </div>
       <div class="card-footer small text-muted"></div>
     </div>
+
+
   </div>
+
+
+
   <div class="col-lg-6">
 
     <?php
@@ -372,6 +526,7 @@ $this->uploadCard();
 
 
   <?php
+
   //$this->uploadCard();
   }
 
@@ -452,14 +607,16 @@ function filesCard(){
         $count=$file["count"];
         $beg=$file["begDate"];
         $end=$file["endDate"];
-        if ($status=="new"){
+        $tbp=$mysql->getRequestsToBeProcessedByFile($id);
 
-          $st="| <a href='https://summitstats.org/index.php?state=hunt&status=new&id=$id'>process file</a>";
-        }
-        else{$st=$status;}
+        $st=$tbp;
+
+        $x=(($count-$tbp)/$count)*100;
+        $y=number_format($x, 2);
+        $st=$y."% processed";
 
 
-        $row= "<tr><td>$desc</td><td>$count</td><td>$beg - $end</td><td>$st</td><td>x</td></tr>";
+        $row= "<tr><td>$desc</td><td>$count</td><td>$beg - $end</td><td>$st</td><td><span  id='$id' data-toggle='modal' data-target='#deleteFile' data-fileID='$id'><i class='fas fa-times-circle' style='color:red;cursor:pointer;'></i></span></td></tr>";
 
           echo $row;
 
@@ -480,6 +637,7 @@ function filesCard(){
 
 
   </div>
+  <?php $this->deleteFileModal(); ?>
 
 
 <?php
@@ -522,6 +680,7 @@ function filesCard(){
 
   /* takes mysql output, preps for 12-month area chart   */
   function formatAreaChartData($data){
+
 
 
     $months=array("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec");
@@ -567,6 +726,7 @@ function filesCard(){
     $colors=array("#4D4D4D", "#5DA5DA", "#FAA43A", "#60BD68", "#F17CB0", "#B2912F", "#B276B2", "#DECF3F", "#F15854");
     $n=0;
     $max=0;
+    $datasets="";
     foreach ($data as $yy=>$d){
       $datapoints="";
       foreach ($d as $point){
@@ -668,9 +828,54 @@ function filesCard(){
 
   }
 
-  function allSubjectsBox(){
+  function manageSubjectsBox($instID){
+
     $mysql=$this->mysql;
-    $subjects=$mysql->getAllSubjects();
+    $subjects=$mysql->getAllSubjects($instID);
+    ?>
+    <div class="card mb-3">
+      <div class="card-header">
+        <i class="fa fa-link"></i> Manage Subjects</div>
+      <div class="card-body">
+      <?php
+
+
+      if(count($subjects)>0){
+
+      $range="<p>";
+      foreach ($subjects as $subject){
+        $id=$subject["id"];
+        $sub=$subject["subject"];
+        $range.="<p><a href='index.php?state=subject&subject_id=$id'>$sub</a> | edit | delete</p>  ";
+      }
+      $range=rtrim( $range, "| ");
+    //  $range.="<a href='index.php?state=letter&letter=dewey'>Dewey</a></p>";
+      echo $range."</p>";
+
+      echo "<p><a href='index.php?state=subject&subject_id=unclassified'>View requests outside subject ranges</a></p>";
+
+    }
+    else{echo "<p>Your institution does not have any subjects set up yet. Click the button below to add one!</p>";}
+       ?>
+       <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addSubjectModal">
+         Add Subject
+       </button>
+
+
+      </div>
+      <div class="card-footer small text-muted"></div>
+    </div>
+<?php
+$this->addSubjectModal();
+
+  }
+
+
+
+  function allSubjectsBox($instID){
+    $mysql=$this->mysql;
+    $subjects=$mysql->getAllSubjects($instID);
+
 
     ?>
     <div class="card mb-3">
@@ -678,17 +883,22 @@ function filesCard(){
         <i class="fa fa-link"></i> Requests by subject</div>
       <div class="card-body">
       <?php
+      if(count($subjects)>0){
+
       $range="<p>";
       foreach ($subjects as $subject){
         $id=$subject["id"];
         $sub=$subject["subject"];
         $range.="<a href='index.php?state=subject&subject_id=$id'>$sub</a> | ";
       }
-    $range=rtrim( $range, "| ");
+      $range=rtrim( $range, "| ");
     //  $range.="<a href='index.php?state=letter&letter=dewey'>Dewey</a></p>";
       echo $range."</p>";
 
       echo "<p><a href='index.php?state=subject&subject_id=unclassified'>View requests outside subject ranges</a></p>";
+
+    }
+    else{echo "<p>Your institution does not have any subjects set up yet. <a href=''>Manage subjects</a>.</p>";}
        ?>
       </div>
       <div class="card-footer small text-muted"></div>
@@ -696,7 +906,7 @@ function filesCard(){
 <?php
   }
 
-  function azBox(){
+  function azBox($instID){
     ?>
     <div class="card mb-3">
       <div class="card-header">
@@ -716,6 +926,22 @@ function filesCard(){
       <div class="card-footer small text-muted"></div>
     </div>
 <?php
+
+  }
+
+  function summaryBox($instID){
+    ?>
+    <div class="card mb-3">
+      <div class="card-header">
+        <i class="fas fa-thermometer-three-quarters"></i> Summary</div>
+
+      <div class="card-body">
+
+      </div>
+      <div class="card-footer small text-muted"></div>
+    </div>
+<?php
+
 
   }
 
@@ -740,11 +966,12 @@ function pieChart($title, $labels, $data, $piechartID){
     $t++;
   }
   $datas=rtrim($datas, ",");
-  $colors=array("#4D4D4D", "#5DA5DA", "#FAA43A", "#60BD68", "#F17CB0", "#B2912F", "#B276B2", "#DECF3F", "#F15854");
+  $colors=array("#4D4D4D", "#5DA5DA", "#FAA43A", "#60BD68", "#F17CB0", "#B2912F", "#B276B2", "#DECF3F", "#F15854", "#fff");
   $c=count($data);
-  if ($c>9){$c==9;}
+  if ($c>9){$c=9;}
   $bgcolors="";
   for($x = 0; $x < $c; $x++){
+
     $col=$colors[$x];
     $bgcolors.="\"$col\",";
   }
@@ -965,7 +1192,8 @@ function pieChart($title, $labels, $data, $piechartID){
           foreach ($users as $user){
             $id=$user["id"];
             $name=$user["name"];
-            echo "<p>$name | <button data-target='#edituser' data-toggle='modal' class='editUser' id='$id'>edit user</button> | edit user subjects</p>";
+            $email=$user["email"];
+            echo"<p>$name | <a data-target='#edituser' data-name='$name' data-userid='$id' data-email='$email' data-toggle='modal' class='editUser' id='$id' style='color:blue;cursor:pointer;'>edit user</a> | <a   data-toggle='modal' data-target='#deleteUser'data-name='$name' data-userid='$id' style='color:blue;cursor:pointer;'>delete user</a></p>";
 
 
           }
@@ -983,53 +1211,22 @@ function pieChart($title, $labels, $data, $piechartID){
         </button>
 
 
-
       </div>
       <div class="card-footer small text-muted"></div>
     </div>
 
-    <!-- Modal -->
-    <div class="modal fade" id="userModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Add User</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="modal-body">
-            <form method="get">
-              <div class="form-group">
-                <label for="fullname">Full Name</label>
-                <input name="name" type="text" class="form-control" id="fullname" placeholder="e.g. Jane Smith">
-              </div>
 
-
-              <div class="form-group">
-                <label for="exampleInputEmail1">Email address</label>
-                <input name="email" type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
-
-              </div>
-              <input type="hidden" name="instID" value="<?= $_SESSION["instID"] ?>">
-              <input type="hidden" name="state" value="adduser">
-
-              <button type="submit" class="btn btn-primary">Submit</button>
-            </form>
-          </div>
-          <div class="modal-footer">
-
-          </div>
-        </div>
-      </div>
-    </div>
 
 
 
 
 
 <?php
+
+$this->addUserModal();
 $this->editUserModal();
+$this->deleteUserModal();
+
 
   }
 
@@ -1075,6 +1272,47 @@ $this->editUserModal();
 
   }
 
+  function addUserModal(){
+?>
+    <!-- Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Add User</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form method="get">
+              <div class="form-group">
+                <label for="fullname">Full Name</label>
+                <input name="name" type="text" class="form-control" id="fullname" placeholder="e.g. Jane Smith" required>
+              </div>
+
+
+              <div class="form-group">
+                <label for="exampleInputEmail1">Email address</label>
+                <input name="email" type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email" required>
+
+              </div>
+              <input type="hidden" name="instID" value="<?= $_SESSION["instID"] ?>">
+              <input type="hidden" name="state" value="adduser">
+
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+          </div>
+          <div class="modal-footer">
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <?php
+
+  }
+
   function editUserModal(){
 
     ?>
@@ -1099,11 +1337,11 @@ $this->editUserModal();
 
                   <div class="form-group">
                     <label for="exampleInputEmail1">Email address</label>
-                    <input name="email" type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email">
+                    <input name="email" type="email" class="form-control" id="email" aria-describedby="emailHelp" placeholder="Enter email">
 
                   </div>
-                  <input type="hidden" name="instID" value="<?= $_SESSION["instID"] ?>">
-                  <input type="hidden" name="state" value="adduser">
+                  <input type="hidden" name="state" value="edituser">
+                  <input type="hidden" name="userID" value="" id="userID">
 
                   <button type="submit" class="btn btn-primary">Submit</button>
                 </form>
@@ -1116,19 +1354,232 @@ $this->editUserModal();
         </div>
 
     <script>
-    $(document).on("click", ".editUser", function () {
-         var id = $(this).attr('id');
-         console.log(id);
-         //$(".modal-body #bookId").val( myBookId );
-         // As pointed out in comments,
-         // it is superfluous to have to manually call the modal.
-         // $('#addBookDialog').modal('show');
+
+    $('#edituser').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget) // Button that triggered the modal
+      var name = button.data('name') // Extract info from data-* attributes
+      var email = button.data('email')
+      var userid = button.data('userid')
+      console.log(name);
+      // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+      // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+      var modal = $(this)
+
+      modal.find("#fullname").attr("value", name);
+      modal.find("#email").attr("value", email);
+      modal.find("#userID").attr("value", userid);
+      //modal.find('.modal-body input').val(recipient)
     });
-
     </script>
+    <?php
+  }
+
+  function deleteUserModal(){
+
+    ?>
+
+        <!-- Modal -->
+        <div class="modal fade" id="deleteUser" tabindex="-1" role="dialog" aria-labelledby="deleteUserLabel" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="deleteUserLabel">Delete User</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <h5>Are you sure you want to delete <span id="deleteFullName"></span>?</h5>
+                <div>
+                <form method="get">
+
+                  <input type="hidden" id="deleteUserID" name="userID" value="">
+                  <input type="hidden" name="state" value="deleteUser">
+
+                  <button type="submit" class="btn btn-primary" style="float:left;background-color:red;">Delete User!</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" style="float:right;">Cancel</button>
+              </div>
+              <div class="modal-footer" style="clear:both;">
+
+              </div>
+            </div>
+          </div>
+        </div>
+        <script>
+
+        $('#deleteUser').on('show.bs.modal', function (event) {
+          var button = $(event.relatedTarget) // Button that triggered the modal
+          var name = button.data('name') // Extract info from data-* attributes
+          var userid = button.data('userid')
+          // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+          // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+          var modal = $(this)
+          modal.find("#deleteFullName").text(name);
+          modal.find("#deleteUserID").attr("value", userid);
+          //modal.find('.modal-body input').val(recipient)
+        });
+        </script>
+
+    <?php
+  }
 
 
 
+  function addSubjectModal(){
+    $mysql=$this->mysql;
+
+    $rows=$mysql->getAllUsers($_SESSION["instID"]);
+
+
+
+?>
+    <!-- Modal -->
+    <div class="modal fade bd-example-modal-lg" id="addSubjectModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Add Subject</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form method="post" action="index.php">
+              <div class="form-group">
+                <label for="fullname">Subject Name</label>
+                <input name="subject" type="text" class="form-control" id="fullname" placeholder="e.g. Biology" required>
+              </div>
+
+
+
+
+
+              <div id="lc-rows">
+
+              <div class="form-row">
+                <div class="form-group col-md-2">
+                  <label for="inputEmail4">Beg. Class</label>
+                  <input type="text" class="form-control" placeholder="e.g QH" name="begLCsub[]" required>
+                </div>
+                <div class="form-group col-md-3">
+                  <label for="inputEmail4">Beg. Number</label>
+                  <input type="text" class="form-control" placeholder="e.g. 1" name="begLCnl[]" required>
+                </div>
+                <div class="form-group col-md-1">
+                  <label for="inputEmail4"></label>
+                  <div>to</div>
+
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="inputEmail4">End Class</label>
+                  <input type="text" class="form-control" placeholder="e.g. QH" name="endLCsub[]" required>
+                </div>
+                <div class="form-group col-md-3">
+                  <label for="inputEmail4">End Number</label>
+                  <input type="text" class="form-control" placeholder="e.g. 705.5" name="endLCnl[]" required>
+                </div>
+
+
+
+              </div>
+            </div><!--lc-rows-->
+            <div class="form-row">
+              <p id="addRangeRow" style="color:blue;text-decoration:underline;cursor:pointer;">Add another range</p>
+            </div>
+            <div class="form-row">
+
+              <label for="exampleFormControlSelect1">Add User</label>
+              <select class="form-control" id="exampleFormControlSelect1" name="user">
+                <?php
+                foreach ($rows as $row){
+                  $id=$row["id"];
+                  $name=$row["name"];
+                  echo "<option value='$id'>$name</option>";
+
+
+
+                }
+
+
+                ?>
+
+              </select>
+            </div>
+
+              <input type="hidden" name="instID" value="<?= $_SESSION["instID"] ?>">
+              <input type="hidden" name="state" value="addsubject">
+
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+          </div>
+          <div class="modal-footer">
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+<script>
+
+var row='<div class=form-row><div class="form-group col-md-2"><input class=form-control name=begLCsub[] placeholder="e.g QH"></div><div class="form-group col-md-3"><input class=form-control name=begLCnl[] placeholder="e.g. 1"></div><div class="form-group col-md-1"><div>to</div></div><div class="form-group col-md-2"><input class=form-control name=endLCsub[] placeholder="e.g. QH"></div><div class="form-group col-md-3"><input class=form-control name=endLCnl[] placeholder="e.g. 705.5"></div></div>';
+$("#addRangeRow").click(function(){
+  $("#lc-rows").append(row);
+
+
+})
+
+</script>
+
+    <?php
+
+  }
+
+
+
+  function deleteFileModal(){
+    ?>
+        <!-- Modal -->
+        <div class="modal fade" id="deleteFile" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Are you sure you want to delete this file?</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                By deleting this file, you will also delete any records associated with this file.
+
+                <form method="get" action="index.php">
+                  <button type="submit" class="btn btn-primary">Delete</button>
+                  <input type='hidden' name='fileID' value='' id='fileIDinput'>
+                  <input type='hidden' name='state' value='deleteFile'>
+                  <button type="button" class="btn btn-secondary" data-dismiss="modal" style="float:right;">Cancel</button>
+                </form>
+              </div>
+              <div class="modal-footer">
+              </div>
+            </div>
+          </div>
+        </div>
+
+    <script>
+
+    $('#deleteFile').on('show.bs.modal', function (event) {
+
+
+      var button = $(event.relatedTarget) // Button that triggered the modal
+      var fileID = button.data('fileid') // Extract info from data-* attributes
+      console.log(fileID);
+      // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+      // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+      var modal = $(this)
+      modal.find("#fileIDinput").attr("value", fileID);
+      //modal.find('.modal-body input').val(recipient)
+    });
+    </script>
     <?php
 
   }

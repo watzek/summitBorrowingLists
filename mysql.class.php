@@ -18,6 +18,52 @@ class mysqlFunctions{
 
   }
 
+  function addSubject($subject, $instID, $userID){
+    $db=$this->db;
+    try {
+      if ($userID){
+        $stmt = $db->prepare("insert into subjects (subject, selector_id, library_id) values (:subject, :userID, :instID)");
+        $data=array(":subject"=>$subject, ":instID"=>$instID, ":userID"=>$userID);
+      }
+      else{
+        $stmt = $db->prepare("insert into subjects (subject,  library_id) values (:subject, :instID)");
+        $data=array(":subject"=>$subject, ":instID"=>$instID);
+      }
+
+
+      //var_dump($data);
+
+      $stmt->execute($data);
+      //$stmt->debugDumpParams();
+      $lastId = $db->lastInsertId();
+      return $lastId;
+
+    }
+    catch (Exception $e) {
+
+      echo $e;
+    }
+
+  }
+
+  function addRange($begLCsub, $begLCnl, $endLCsub, $endLCnl, $subject_id){
+    $db=$this->db;
+    try {
+
+        $stmt = $db->prepare("insert into ranges (begLCsub, begLCnl, endLCsub, endLCnl, subject_id) values (:begLCsub, :begLCnl, :endLCsub, :endLCnl, :subject_id)");
+        $data=array(":begLCsub"=>$begLCsub, ":begLCnl"=>$begLCnl, ":endLCsub"=>$endLCsub, ":endLCnl"=>$endLCnl, ":subject_id"=>$subject_id);
+      $stmt->execute($data);
+      //$stmt->debugDumpParams();
+      $lastId = $db->lastInsertId();
+      return $lastId;
+
+    }
+    catch (Exception $e) {
+
+      echo $e;
+    }
+  }
+
   function getAllSelectors($instID){
     try {
       $db=$this->db;
@@ -33,6 +79,46 @@ class mysqlFunctions{
     return $rows;
 
   }
+
+  function getRequestsToBeProcessed($instID){
+    $db=$this->db;
+    try {
+
+      $stmt = $db->prepare("select count(id) as c from requests where (APIstatus='oclc1' or APIstatus='oclc2' or APIstatus='isbn1' or APIstatus='isbn2' or APIstatus='ta') and library_id=:instID");
+      $stmt->execute(array(":instID"=>$instID));
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    }
+    catch (Exception $e) {
+
+      echo $e;
+    }
+    return $rows[0]["c"];
+
+
+
+  }
+
+
+  function getRequestsToBeProcessedByFile($fileID){
+    $db=$this->db;
+    try {
+
+      $stmt = $db->prepare("select count(id) as c from requests where (APIstatus='oclc1' or APIstatus='oclc2' or APIstatus='isbn1' or APIstatus='isbn2' or APIstatus='ta') and file_id=:fileID");
+      $stmt->execute(array(":fileID"=>$fileID));
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    }
+    catch (Exception $e) {
+
+      echo $e;
+    }
+    return $rows[0]["c"];
+
+
+
+  }
+
 
   function getAllUsers($instID){
     try {
@@ -63,6 +149,56 @@ class mysqlFunctions{
       echo $e;
     }
     return $rows;
+  }
+
+  function deleteFile($id){
+    $db=$this->db;
+    try {
+
+      $stmt = $db->prepare("delete from reportFiles where id=:id");
+      $stmt->execute(array(":id"=>$id));
+      if($stmt->fetchAll(PDO::FETCH_ASSOC)){return true;}
+      else{return false;}
+
+    }
+    catch (Exception $e) {
+
+      echo $e;
+    }
+  }
+
+  function deleteRequestsByFile($id){
+    $db=$this->db;
+    try {
+      $stmt = $db->prepare("delete from requests where file_id=:id");
+
+
+      $stmt->execute(array(":id"=>$id));
+
+
+    }
+    catch (Exception $e) {
+
+      echo $e;
+    }
+    $stmt->debugDumpParams();
+
+  }
+
+  function updateFileStatus($id, $status){
+    $db=$this->db;
+    try {
+      $db=$this->db;
+      $stmt = $db->prepare("update reportFiles set status=:status where id=:id");
+      $stmt->execute(array(":status"=>$status, ":id"=>$id));
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    }
+    catch (Exception $e) {
+
+      echo $e;
+    }
+
   }
 
   function getBegDate($fileID){
@@ -147,11 +283,11 @@ class mysqlFunctions{
 
   }
 
-  function getAllSubjects(){
+  function getAllSubjects($instID){
     $db=$this->db;
     try {
-      $stmt = $db->prepare("select * from subjects order by subject");
-      $stmt->execute();
+      $stmt = $db->prepare("select * from subjects where library_id=:instID order by subject");
+      $stmt->execute(array(":instID"=>$instID));
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     }
@@ -241,7 +377,7 @@ class mysqlFunctions{
 
     $db=$this->db;
     try {
-      $db=$this->db;
+
       $stmt = $db->prepare("insert into requests (title, pubDate, isbn1, isbn2, oclc1, oclc2, requestDate, author, library_id, file_id, APIstatus) values (:title, :pubDate, :isbn1, :isbn2, :oclc1, :oclc2, :requestDate, :author, :library_id, :file_id, :APIstatus)");
       $data=array(":title"=>$entry["title"], ":pubDate"=>$entry["pubDate"], ":isbn1"=>$entry["isbn1"], ":isbn2"=>$entry["isbn2"], ":oclc1"=>$entry["oclc1"], ":oclc2"=>$entry["oclc2"], ":requestDate"=>$entry["requestDate"], ":author"=>$entry["author"], ":library_id"=>$entry["instID"], ":file_id"=>$entry["fileID"], ":APIstatus"=>$entry["APIstatus"]);
       //var_dump($data);
@@ -259,20 +395,59 @@ class mysqlFunctions{
 
   }
 
-
-  function getNewRequestsByStatus($status){
+  function getNewRequestsByStatusAndInst($status, $instID){
 
     $db=$this->db;
-    try {
-      $stmt = $db->prepare("select * from requests where APIstatus=:status ");
-      $stmt->execute(array(":status"=>$status));
-      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+      try {
+        $stmt = $db->prepare("select * from requests where APIstatus=:status and library_id=:instID");
+        $stmt->execute(array(":status"=>$status, ":instID"=>$instID));
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+      }
+      catch (Exception $e) {
+
+        echo $e;
+      }
+
+
+
+    return $rows;
+
+  }
+
+  function getNewRequestsByStatus($status, $fileID=null){
+
+    $db=$this->db;
+    if ($fileID){
+      try {
+        $stmt = $db->prepare("select * from requests where APIstatus=:status and file_id=:fileID");
+        $stmt->execute(array(":status"=>$status, ":fileID"=>$fileID));
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+      }
+      catch (Exception $e) {
+
+        echo $e;
+      }
+
 
     }
-    catch (Exception $e) {
+    else{
+      try {
+        $stmt = $db->prepare("select * from requests where APIstatus=:status ");
+        $stmt->execute(array(":status"=>$status));
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-      echo $e;
+      }
+      catch (Exception $e) {
+
+        echo $e;
+      }
+
     }
+
+
     return $rows;
 
   }
@@ -359,8 +534,8 @@ class mysqlFunctions{
     $db=$this->db;
     try {
       $db=$this->db;
-      $stmt = $db->prepare("update requests set LCsubject=:LCsubject, LCnumberLine=:LCnumberLine, LCremainder=:LCremainder where id=:id");
-      $data=array(":LCsubject"=>$cnPieces["LCsubject"], ":LCnumberLine"=>$cnPieces["LCnumberLine"], ":LCremainder"=>$cnPieces["LCremainder"], ":id"=>$id);
+      $stmt = $db->prepare("update requests set LCsubject=:LCsubject, LCnumberLine=:LCnumberLine, LCremainder=:LCremainder, LCnl=:LCnl where id=:id");
+      $data=array(":LCsubject"=>$cnPieces["LCsubject"], ":LCnumberLine"=>$cnPieces["LCnumberLine"], ":LCremainder"=>$cnPieces["LCremainder"],":LCnl"=>$cnPieces["LCnl"], ":id"=>$id);
 
 
       if ($stmt->execute($data)){return true;}
@@ -415,18 +590,18 @@ class mysqlFunctions{
     }
 
   }
-function getAllByLetter($letter){
+function getAllByLetter($letter, $instID){
 //select * from requests where APIstatus='needSubj' order by LCsubject, LCnumberLine, LCremainder, pubdate desc, oclc1, requestDate desc;
 
     $db=$this->db;
     try {
       if ($letter=="dewey"){
-        $stmt = $db->prepare("select * from requests where  APIstatus='Dewey' order by dewey asc");
-        $stmt->execute();
+        $stmt = $db->prepare("select * from requests where  APIstatus='Dewey' and library_id=:instID order by dewey asc");
+        $stmt->execute(array(":instID"=>$instID));
       }
       else{
-        $stmt = $db->prepare("select * from requests where  LCsubject like '$letter%' order by LCsubject, LCnl, LCremainder, pubdate desc, oclc1, requestDate desc");
-        $stmt->execute(array(":letter"=>$letter));
+        $stmt = $db->prepare("select * from requests where  LCsubject like '$letter%' and library_id=:instID order by LCsubject, LCnl, LCremainder, pubdate desc, oclc1, requestDate desc");
+        $stmt->execute(array(":instID"=>$instID));
       }
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -487,13 +662,13 @@ function getAllByLetter($letter){
     return $rows;
   }
 
-  function getAreaChartDataByLetter($letter){
+  function getAreaChartDataByLetter($letter, $instID){
 
     $db=$this->db;
     try {
 
-      $stmt = $db->prepare("select count(id)as c, MONTH(requestDate) as m, YEAR(requestDate) as yyyy from requests where LCsubject like '$letter%' GROUP BY YEAR(requestDate), MONTH(requestDate)");
-      $stmt->execute();
+      $stmt = $db->prepare("select count(id)as c, MONTH(requestDate) as m, YEAR(requestDate) as yyyy from requests where LCsubject like '$letter%' and library_id=:instID GROUP BY YEAR(requestDate), MONTH(requestDate)");
+      $stmt->execute(array(":instID"=>$instID));
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     catch (Exception $e) {
@@ -519,14 +694,14 @@ function getAllByLetter($letter){
     return $rows;
   }
 
-  function getPieChartForLetterData($letter){
+  function getPieChartForLetterData($letter, $instID){
 
 
     $db=$this->db;
     try {
 
-      $stmt = $db->prepare("select LCsubject, count(id) as c from requests where LCsubject like '$letter%' group by LCsubject order by c desc");
-      $stmt->execute();
+      $stmt = $db->prepare("select LCsubject, count(id) as c from requests where LCsubject like '$letter%' and library_id=:instID group by LCsubject order by c desc");
+      $stmt->execute(array(":instID"=>$instID));
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     catch (Exception $e) {
@@ -557,6 +732,21 @@ function getAllByLetter($letter){
 
   }
 
+  function getAllRangesCastByInst($instID){
+    $db=$this->db;
+    try {
+
+      $stmt = $db->prepare("select subject_id, begLCsub, CAST(begLCnl AS decimal(10,6)) as bnl, endLCsub, CAST(endLCnl AS decimal(10,6)) as enl from ranges join subjects on ranges.subject_id=subjects.id and subjects.library_id=:instID order by begLCsub, enl");
+      $stmt->execute(array(":instID"=>$instID));
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    catch (Exception $e) {
+
+      echo $e;
+    }
+    return $rows;
+  }
+
 
   function getAllRangesCast(){
     $db=$this->db;
@@ -573,12 +763,13 @@ function getAllByLetter($letter){
     return $rows;
   }
 
-  function getRequestsMatchingRange($bsub, $bnl, $esub, $enl){
+  function getRequestsMatchingRange($bsub, $bnl, $esub, $enl, $instID){
     $db=$this->db;
     try {
 
-      $stmt = $db->prepare("select * from requests where LCsubject>= :bsub and LCnl >= :bnl and LCsubject <= :esub and LCnl <= :enl and subject_id is null ");
-      $stmt->execute(array(":bsub"=>$bsub, ":bnl"=>$bnl, ":esub"=>$esub, ":enl"=>$enl));
+      $stmt = $db->prepare("select * from requests where LCsubject>= :bsub and LCnumberLine >= :bnl and LCsubject <= :esub and LCnumberLine <= :enl and subject_id is null and library_id=:instID ");
+      $stmt->execute(array(":bsub"=>$bsub, ":bnl"=>$bnl, ":esub"=>$esub, ":enl"=>$enl, ":instID"=>$instID));
+      //$stmt->debugDumpParams();
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
       //var_dump($rows);
     }
@@ -587,13 +778,14 @@ function getAllByLetter($letter){
       echo $e;
     }
     return $rows;
+
   }
 
-  function getStatuses(){
+  function getStatuses($instID){
     $db=$this->db;
     try {
-      $stmt = $db->prepare("select distinct APIstatus, count(id) as total from requests group by APIstatus order by total desc;");
-      $stmt->execute();
+      $stmt = $db->prepare("select distinct APIstatus, count(id) as total from requests where library_id=:instID group by APIstatus order by total desc;");
+      $stmt->execute(array(":instID"=>$instID));
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
       //var_dump($rows);
     }
@@ -679,6 +871,31 @@ function getAllByLetter($letter){
 
   }
 
+  function deleteUser($userID){
+    $db=$this->db;
+    try {
+      $stmt= $db->prepare("delete from selectors where id=:userID");
+      if ($stmt->execute(array(":userID"=>$userID))){return true;}
+      else{return false;}
+
+    }
+    catch (Exception $e){
+      echo $e;
+    }
+  }
+  function updateDeletedUserSubjects($userID){
+    $db=$this->db;
+    try {
+      $stmt= $db->prepare("update subjects set selector_id=null where selector_id=:userID");
+      if ($stmt->execute(array(":userID"=>$userID))){return true;}
+      else{return false;}
+
+    }
+    catch (Exception $e){
+      echo $e;
+    }
+  }
+
   function addNewUser($name, $email, $instID){
     $db=$this->db;
     try {
@@ -690,6 +907,24 @@ function getAllByLetter($letter){
     catch (Exception $e){
       echo $e;
     }
+
+  }
+
+  function editUser($name, $email, $userID){
+    $db=$this->db;
+    try {
+      $stmt= $db->prepare("update selectors set name=:name, email=:email where id=:userID");
+      if ($stmt->execute(array(":name"=>$name, ":email"=>$email,  ":userID"=>$userID))){
+
+        return true;
+      }
+      else{return false;}
+
+    }
+    catch (Exception $e){
+      echo $e;
+    }
+
 
   }
 

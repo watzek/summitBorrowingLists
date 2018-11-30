@@ -1,6 +1,130 @@
 <?php
 class utilities{
 
+  function match(){
+    $mysql=$this->mysql;
+    $instID=$_REQUEST["instID"];
+    $x=0;
+
+    $ranges=$mysql->getAllRangesCastByInst($instID);
+
+    foreach ($ranges as $range){
+
+    //  var_dump($range);
+      $subject_id=$range["subject_id"];
+      $bsub=$range["begLCsub"];
+      $bnl=$range["bnl"];
+      $esub=$range["endLCsub"];
+      $enl=$range["enl"];
+      $requests=$mysql->getRequestsMatchingRange($bsub, $bnl, $esub, $enl, $instID);
+      $c=count($requests);
+      //var_dump($requests);
+
+      foreach ($requests as $request){
+        $id=$request["id"];
+        $mysql->updateRequestSubjectId($id, $subject_id);
+
+      }
+
+
+    //  echo "$bsub, $bnl, $esub, $enl: $c<br>";
+      $x=$x+$c;
+
+    }
+
+    if($c>0){
+      $_SESSION["flash"]=true;
+      $_SESSION["flashTitle"]="Success!";
+      $_SESSION["flashDesc"]="$c requests matched to subjects.";
+      $_SESSION["flashType"]="alert-success";
+      $newURL="https://summitstats.org?state=tools";
+      header('Location: '.$newURL);
+
+    }
+    else{
+      $_SESSION["flash"]=true;
+      $_SESSION["flashTitle"]="Attention:";
+      $_SESSION["flashDesc"]="0 requests matched to subjects.";
+      $_SESSION["flashType"]="alert-info";
+      $newURL="https://summitstats.org?state=tools";
+      header('Location: '.$newURL);
+
+
+
+    }
+
+
+
+
+
+  }
+
+  function addSubject(){
+    $mysql=$this->mysql;
+    $instID=$_REQUEST["instID"];
+    $subject=$_REQUEST["subject"];
+    if ($_REQUEST["user"]){$userID=$_REQUEST["user"];}
+    else{$userID=NULL;}
+  //  var_dump($_REQUEST);
+
+    $subject_id=$mysql->addSubject($subject, $instID, $userID);
+
+    //echo $subject_id;
+
+    $n=count($_REQUEST["begLCsub"]);
+    for ($i = 0; $i <$n; $i++) {
+      $begLCsub=$_REQUEST["begLCsub"][$i];
+      $begLCnl=$_REQUEST["begLCnl"][$i];
+      $endLCsub=$_REQUEST["endLCsub"][$i];
+      $endLCnl=$_REQUEST["endLCnl"][$i];
+      $range_id=$mysql->addRange($begLCsub, $begLCnl, $endLCsub, $endLCnl, $subject_id);
+
+    //  echo $range_id;
+
+
+    }
+    if($subject_id && $range_id){
+      $_SESSION["flash"]=true;
+      $_SESSION["flashTitle"]="Success!";
+      $_SESSION["flashDesc"]="$subject added.";
+      $_SESSION["flashType"]="alert-success";
+      $newURL="https://summitstats.org?state=subjects";
+      header('Location: '.$newURL);
+
+
+    }
+
+
+
+
+
+    //exit();
+
+
+
+  }
+
+  function deleteUser(){
+
+    $mysql=$this->mysql;
+    if($mysql->deleteUser($_REQUEST["userID"])){
+      $mysql->updateDeletedUserSubjects($_REQUEST["userID"]);
+      //update flash message
+      $_SESSION["flash"]=true;
+      $_SESSION["flashTitle"]="Success!";
+      $_SESSION["flashDesc"]="User deleted.";
+      $_SESSION["flashType"]="alert-success";
+      $newURL="https://summitstats.org?state=manageUsers";
+      header('Location: '.$newURL);
+
+
+    }
+
+
+
+
+  }
+
   function addNewUser(){
 
     $mysql=$this->mysql;
@@ -22,9 +146,49 @@ class utilities{
 
   }
 
+  function editUser(){
+    $mysql=$this->mysql;
+    if ($mysql->editUser($_REQUEST["name"], $_REQUEST["email"], $_REQUEST["userID"])){
+
+      //update flash message
+      $_SESSION["flash"]=true;
+      $_SESSION["flashTitle"]="Success!";
+      $_SESSION["flashDesc"]=$_REQUEST["name"]." updated.";
+      $_SESSION["flashType"]="alert-success";
+      $newURL="https://summitstats.org/index.php?state=manageUsers";
+      header('Location: '.$newURL);
+
+    }
+    else{
+      echo "didn't";
+
+    }
+
+  }
+
+  function deleteFile($id){
+    $mysql=$this->mysql;
+    $mysql->deleteFile($id);
+    $mysql->deleteRequestsByFile($id);
+        //update flash message
+        $_SESSION["flash"]=true;
+        $_SESSION["flashTitle"]="FYI!";
+        $_SESSION["flashDesc"]="File has been deleted.";
+        $_SESSION["flashType"]="alert-info";
+        $newURL="https://summitstats.org/index.php?state=tools";
+        header('Location: '.$newURL);
+
+
+
+  }
+
   function processUpload(){
 
     $type=$_FILES["fileToUpload"]["type"];
+
+  //  var_dump($_FILES);
+//    exit();
+/*
     if ($type !="text/csv"){
       $_SESSION["flash"]=true;
       $_SESSION["flashTitle"]="Error!";
@@ -35,7 +199,7 @@ class utilities{
 
 
     }
-
+*/
     $mysql=$this->mysql;
     $instID=$_SESSION["instID"];
     $libInfo=$mysql->getLibraryDetails($instID);
@@ -151,6 +315,9 @@ class utilities{
 
 
     } else {
+
+    //  var_dump($_FILES);
+    //  exit();
       $_SESSION["flash"]=true;
       $_SESSION["flashTitle"]="Error!";
       $_SESSION["flashDesc"]="Sorry, there was an error uploading your file. Please try again!";

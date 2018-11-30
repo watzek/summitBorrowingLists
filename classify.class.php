@@ -46,6 +46,9 @@ from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
         break;
 
         case "4":
+        echo "MULTIWORK!!!!!!";
+        echo $oclc;
+        exit();
         #multi-work
 
         break;
@@ -71,7 +74,7 @@ from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
       $response=simplexml_load_file($url);
 
       $code=$response->response->attributes()->code;
-      echo "<p>Code: $isbn | $code</p>";
+    //  echo "<p>Code: $isbn | $code</p>";
 
 /*
 from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
@@ -89,19 +92,33 @@ from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
         if ($response->recommendations->lcc){
           $cn=$response->recommendations->lcc->mostPopular->attributes()->sfa;
         }
-        else{}
+        else{
+          if($response->recommendations->ddc){
+            $cn="DEWEY".$response->recommendations->ddc->mostPopular->attributes()->sfa;
+          }
+
+
+        }
 
 
 
         break;
 
         case "4":
-        #multi-work
+        $owi=$response->works->work[0]->attributes()->owi;
+        echo $owi;
+        $cn=$this->searchByOwi($owi);
+        echo "MULTIWORK!!sdfksdhf";
+
+        # http://classify.oclc.org/classify2/Classify?isbn=9780140444254&summary=true
+        echo $isbn;
+        //exit();
 
         break;
 
         case "102":
-        echo "error";
+      //  echo "error";
+        $cn="102isbn";
 
         break;
 
@@ -117,6 +134,7 @@ from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
 
 
     function searchByTitleAndAuthor($title, $author=NULL, $id, $mysql){
+      echo "searchByTitleAndAuthor";
       $cn=false;
 
       $url="http://classify.oclc.org/classify2/Classify?title=".urlencode($title);
@@ -129,7 +147,7 @@ from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
       echo $url;
 
       $code=$response->response->attributes()->code;
-      echo "<p>Code: $isbn | $code</p>";
+      echo "<p>Code:  $code</p>";
 
     /*
     from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
@@ -147,7 +165,16 @@ from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
         if ($response->recommendations->lcc){
           $cn=$response->recommendations->lcc->mostPopular->attributes()->sfa;
         }
-        else{}
+
+
+
+          elseif($response->recommendations->ddc){
+            //echo "here i am";
+            $cn="DEWEY".$response->recommendations->ddc->mostPopular->attributes()->sfa;
+          }
+
+        
+        else{$mysql->updateStatus($id, "unable to resolve");}
 
 
 
@@ -165,8 +192,9 @@ from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
         break;
 
         case "102":
-        echo "error";
-        $mysql->updateStatus($id, "102ta");
+        case "100":
+      //  echo "error";
+        $mysql->updateStatus($id, "unable to resolve");
 
         break;
 
@@ -187,20 +215,25 @@ from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
       $cn=false;
 
       $url="http://classify.oclc.org/classify2/Classify?owi=$owi&summary=true";
+      echo $url;
       $response=simplexml_load_file($url);
 
       $code=$response->response->attributes()->code;
       echo "<p>Code: $owi | $code</p>";
 
       switch($code){
+
+        #add dewey
         case "0":
         if ($response->recommendations->lcc){
           $cn=$response->recommendations->lcc->mostPopular->attributes()->sfa;
           echo $cn;
         }
         else{
-
-
+          if($response->recommendations->ddc){
+            echo "here i am";
+            $cn="DEWEY".$response->recommendations->ddc->mostPopular->attributes()->sfa;
+          }
         }
 
 

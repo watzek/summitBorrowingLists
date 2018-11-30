@@ -48,28 +48,35 @@ foreach ($selectors as $s){
 
         </ul>
       </li>
-      <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Tables">
-        <a class="nav-link" href="index.php?state=subjects">
-          <i class="fa fa-fw fa-globe"></i>
-          <span class="nav-link-text">Subjects</span>
-        </a>
-      </li>
       <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Manage Users">
         <a class="nav-link" href="index.php?state=manageUsers">
           <i class="fa fa-user-cog"></i>
           <span class="nav-link-text">Manage Users</span>
         </a>
       </li>
+      <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Tables">
+        <a class="nav-link" href="index.php?state=subjects">
+          <i class="fa fa-fw fa-globe"></i>
+          <span class="nav-link-text">Manage Subjects</span>
+        </a>
+      </li>
+
 
 
       <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Tables">
         <a class="nav-link" href="index.php?state=tools">
           <i class="fa fa-fw fa-wrench"></i>
-          <span class="nav-link-text">Tools</span>
+          <span class="nav-link-text">Process Alma Reports</span>
         </a>
       </li>
     <?php } ?>
 
+    <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Docs">
+      <a class="nav-link" href="index.php?state=docs">
+        <i class="fa fa-fw fa-info"></i>
+        <span class="nav-link-text">Help / Docs</span>
+      </a>
+    </li>
       <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Tables">
         <a class="nav-link" href="index.php?state=about">
           <i class="fa fa-fw fa-smile"></i>
