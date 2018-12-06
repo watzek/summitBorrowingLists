@@ -173,7 +173,7 @@ from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
             $cn="DEWEY".$response->recommendations->ddc->mostPopular->attributes()->sfa;
           }
 
-        
+
         else{$mysql->updateStatus($id, "unable to resolve");}
 
 
@@ -183,7 +183,7 @@ from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
         case "4":
         #multi-work
         $owi=$response->works->work[0]->attributes()->owi;
-        echo $owi;
+        echo "OWI: $owi";
         $cn=$this->searchByOwi($owi);
         //exit();
 
@@ -201,6 +201,7 @@ from: http://classify.oclc.org/classify2/api_docs/classify.html#examples
       }
 
       if ($cn){return $cn;}
+      else{echo "CN FAIL";}
 
 
       }

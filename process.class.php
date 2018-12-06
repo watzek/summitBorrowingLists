@@ -25,12 +25,6 @@ class cnSearch{
 
   }
 
-  function newInstSearch(){
-
-
-
-
-  }
 
 
   function newFileSearch($id){
@@ -56,6 +50,7 @@ class cnSearch{
 
     $mysql->updateFileStatus($id, "processed");
     echo "<p>Ok, it's done!</p>";
+  //  return true;
 /*
     $_SESSION["flash"]=true;
     $_SESSION["flashTitle"]="Success";
@@ -305,6 +300,7 @@ class cnSearch{
             $mysql->updateStatus($id, "Dewey");
           }
           else{
+            $cnPieces=$this->handleCn($cn);
             if ($mysql->updateCN($id, $cnPieces)){
               $mysql->updateStatus($id, "needSubj");
 
@@ -318,7 +314,8 @@ class cnSearch{
 
       }
       else{
-
+        $status="unable to resolve";
+        $mysql->updateStatus($id, $status);
 
       }
     }

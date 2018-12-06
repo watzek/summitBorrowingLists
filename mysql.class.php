@@ -46,6 +46,26 @@ class mysqlFunctions{
 
   }
 
+
+  function getRequestsGroupedBySubject($id){
+    $db=$this->db;
+    try {
+      //select count(title), title from requests  where APIstatus='unable to resolve' and library_id=1 group by title order by count(title) asc;
+      $stmt = $db->prepare("select count(title) as c, title, author, LCSubject, LCnumberLine, LCremainder, pubdate from requests  where subject_id=:id group by title order by count(title) desc, title asc;");
+      $stmt->execute(array(":id"=>$id));
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    //  var_dump($rows);
+
+    }
+    catch (Exception $e) {
+
+      echo $e;
+    }
+    return $rows;
+
+
+  }
+
   function addRange($begLCsub, $begLCnl, $endLCsub, $endLCnl, $subject_id){
     $db=$this->db;
     try {
@@ -68,6 +88,7 @@ class mysqlFunctions{
     try {
       $db=$this->db;
       $stmt = $db->prepare("select distinct selectors.id, selectors.name from selectors, subjects where  selectors.library_id=:instID and selectors.id=subjects.selector_id");
+      $stmt = $db->prepare("select distinct selectors.id, selectors.name from selectors where  selectors.library_id=:instID ");
       $stmt->execute(array(":instID"=>$instID));
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -378,8 +399,8 @@ class mysqlFunctions{
     $db=$this->db;
     try {
 
-      $stmt = $db->prepare("insert into requests (title, pubDate, isbn1, isbn2, oclc1, oclc2, requestDate, author, library_id, file_id, APIstatus) values (:title, :pubDate, :isbn1, :isbn2, :oclc1, :oclc2, :requestDate, :author, :library_id, :file_id, :APIstatus)");
-      $data=array(":title"=>$entry["title"], ":pubDate"=>$entry["pubDate"], ":isbn1"=>$entry["isbn1"], ":isbn2"=>$entry["isbn2"], ":oclc1"=>$entry["oclc1"], ":oclc2"=>$entry["oclc2"], ":requestDate"=>$entry["requestDate"], ":author"=>$entry["author"], ":library_id"=>$entry["instID"], ":file_id"=>$entry["fileID"], ":APIstatus"=>$entry["APIstatus"]);
+      $stmt = $db->prepare("insert into requests (title, pubDate, isbn1, isbn2, oclc1, oclc2, requestDate, author, library_id, file_id, APIstatus, publisher) values (:title, :pubDate, :isbn1, :isbn2, :oclc1, :oclc2, :requestDate, :author, :library_id, :file_id, :APIstatus, :publisher)");
+      $data=array(":title"=>$entry["title"], ":pubDate"=>$entry["pubDate"], ":isbn1"=>$entry["isbn1"], ":isbn2"=>$entry["isbn2"], ":oclc1"=>$entry["oclc1"], ":oclc2"=>$entry["oclc2"], ":requestDate"=>$entry["requestDate"], ":author"=>$entry["author"], ":library_id"=>$entry["instID"], ":file_id"=>$entry["fileID"], ":APIstatus"=>$entry["APIstatus"], ":publisher"=>$entry["publisher"]);
       //var_dump($data);
 
       $stmt->execute($data);
@@ -590,6 +611,38 @@ class mysqlFunctions{
     }
 
   }
+
+
+
+  function getAllByLetterForCsv($letter, $instID){
+  //select * from requests where APIstatus='needSubj' order by LCsubject, LCnumberLine, LCremainder, pubdate desc, oclc1, requestDate desc;
+
+      $db=$this->db;
+      try {
+        if ($letter=="dewey"){
+          $stmt = $db->prepare("select requestDate, author, title, publisher, pubdate, concat_ws(';',isbn1,isbn2) as isbn, concat_ws(';',oclc1,oclc2) as oclc, dewey as cn, LCremainder from requests where  APIstatus='Dewey' and library_id=:instID order by dewey asc");
+          $stmt->execute(array(":instID"=>$instID));
+        }
+        elseif($letter=="all"){
+          $stmt = $db->prepare("select requestDate, author, title, publisher, pubdate, concat_ws(';',isbn1,isbn2) as isbn, concat_ws(';',oclc1,oclc2) as oclc, concat_ws('',LCsubject,LCnumberLine) as cn, LCremainder from requests where  LCsubject is not null and library_id=:instID order by LCsubject, LCnl, LCremainder, pubdate desc, oclc1, requestDate desc");
+          $stmt->execute(array(":instID"=>$instID));
+        }
+        else{
+          $stmt = $db->prepare("select requestDate, author, title, publisher, pubdate, concat_ws(';',isbn1,isbn2) as isbn, concat_ws(';',oclc1,oclc2) as oclc, concat_ws('',LCsubject,LCnumberLine) as cn, LCremainder from requests where  LCsubject like '$letter%' and library_id=:instID order by LCsubject, LCnl, LCremainder, pubdate desc, oclc1, requestDate desc");
+          $stmt->execute(array(":instID"=>$instID));
+        }
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+      }
+      catch (Exception $e) {
+
+        echo $e;
+      }
+      //$stmt->debugDumpParams();
+      return $rows;
+
+    }
+
 function getAllByLetter($letter, $instID){
 //select * from requests where APIstatus='needSubj' order by LCsubject, LCnumberLine, LCremainder, pubdate desc, oclc1, requestDate desc;
 
@@ -599,11 +652,47 @@ function getAllByLetter($letter, $instID){
         $stmt = $db->prepare("select * from requests where  APIstatus='Dewey' and library_id=:instID order by dewey asc");
         $stmt->execute(array(":instID"=>$instID));
       }
+      elseif($letter=="all"){
+        $stmt = $db->prepare("select * from requests where  LCsubject is not null and library_id=:instID order by LCsubject, LCnl, LCremainder, pubdate desc, oclc1, requestDate desc");
+        $stmt->execute(array(":instID"=>$instID));
+      }
       else{
         $stmt = $db->prepare("select * from requests where  LCsubject like '$letter%' and library_id=:instID order by LCsubject, LCnl, LCremainder, pubdate desc, oclc1, requestDate desc");
         $stmt->execute(array(":instID"=>$instID));
       }
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    }
+    catch (Exception $e) {
+
+      echo $e;
+    }
+    return $rows;
+
+  }
+
+  function getAll($instID){
+    $db=$this->db;
+    $rows=array();
+
+    try {
+
+      $stmt = $db->prepare("select * from requests where  LCsubject like '$letter%' and library_id=:instID order by LCsubject, LCnl, LCremainder, pubdate desc, oclc1, requestDate desc");
+      $stmt->execute(array(":instID"=>$instID));
+/*
+      foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $row) {
+          array_push($rows, $row);
+      }
+      */
+      /*
+      foreach($stmt->fetch(PDO::FETCH_ASSOC) as $row){
+        array_push($rows, $row);
+
+
+      }
+      */
+
+      //$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     }
     catch (Exception $e) {
@@ -629,6 +718,25 @@ function getAllByLetter($letter, $instID){
     }
     return $rows;
   }
+
+  function getRequestsBySubjectIdForCsv($id){
+    $db=$this->db;
+    try {
+      $stmt = $db->prepare("select requestDate, author, title, publisher, pubdate, concat_ws(';',isbn1,isbn2) as isbn, concat_ws(';',oclc1,oclc2) as oclc, concat_ws('',LCsubject,LCnumberLine) as cn, LCremainder  from requests where  subject_id=:id order by LCsubject, LCnl, LCremainder, pubdate desc, oclc1, requestDate desc");
+      $stmt->execute(array(":id"=>$id));
+      $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    //  var_dump($rows);
+    //concat_ws(';',oclc1,oclc2) as oclc
+
+    }
+    catch (Exception $e) {
+
+      echo $e;
+    }
+    return $rows;
+  }
+
+
 
   function getRequestsNoSubjects(){
     $db=$this->db;
@@ -767,7 +875,7 @@ function getAllByLetter($letter, $instID){
     $db=$this->db;
     try {
 
-      $stmt = $db->prepare("select * from requests where LCsubject>= :bsub and LCnumberLine >= :bnl and LCsubject <= :esub and LCnumberLine <= :enl and subject_id is null and library_id=:instID ");
+      $stmt = $db->prepare("select * from requests where LCsubject>= :bsub and LCnl >= :bnl and LCsubject <= :esub and LCnl <= :enl and subject_id is null and library_id=:instID ");
       $stmt->execute(array(":bsub"=>$bsub, ":bnl"=>$bnl, ":esub"=>$esub, ":enl"=>$enl, ":instID"=>$instID));
       //$stmt->debugDumpParams();
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -784,7 +892,7 @@ function getAllByLetter($letter, $instID){
   function getStatuses($instID){
     $db=$this->db;
     try {
-      $stmt = $db->prepare("select distinct APIstatus, count(id) as total from requests where library_id=:instID group by APIstatus order by total desc;");
+      $stmt = $db->prepare("select distinct APIstatus, count(id) as total from requests where library_id=:instID group by APIstatus order by APIstatus asc;");
       $stmt->execute(array(":instID"=>$instID));
       $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
       //var_dump($rows);
@@ -869,6 +977,20 @@ function getAllByLetter($letter, $instID){
 
 
 
+  }
+
+  function getUserIdByEmail($email){
+    $db=$this->db;
+    try {
+      $stmt= $db->prepare("select id from selectors where email=:email");
+      $stmt->execute(array(":email"=>$email));
+      $rows=$stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    catch (Exception $e){
+      echo $e;
+    }
+
+    return $rows;
   }
 
   function deleteUser($userID){

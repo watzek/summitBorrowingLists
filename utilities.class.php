@@ -1,6 +1,86 @@
 <?php
 class utilities{
 
+  function dlcsv(){
+    $instID=$_SESSION["instID"];
+
+    $mysql=$this->mysql;
+    $headers=array("Borrowing Creation Date", "Author", "Title","Publisher",  "Publication Date", "ISBN", "OCLC Number", "Call Number");
+
+    switch($_REQUEST["type"]){
+      case "subject":
+      $id=$_REQUEST["subject_id"];
+      $info=$mysql->getSubjectInfo($id);
+      //var_dump($info);
+      $subject=$info[0]["subject"];
+      $filename="$subject.csv";
+      $array=$mysql->getRequestsBySubjectIdForCsv($id);
+
+
+      break;
+
+      case "letter":
+      $letter=$_REQUEST["subject_id"];
+
+      $filename="$letter.csv";
+      $array=$mysql->getAllByLetterForCsv($letter, $instID);
+      //var_dump($array);
+    // exit();
+
+
+
+
+      break;
+
+
+
+
+    }
+
+    //$filename="test.csv";
+
+ header('Content-Type: application/csv');
+  header('Content-Disposition: attachment; filename="'.$filename.'";');
+
+    // open the "output" stream
+    // see http://www.php.net/manual/en/wrappers.php.php#refsect2-wrappers.php-unknown-unknown-unknown-descriptioq
+    $f = fopen('php://output', 'w');
+    $delimiter=",";
+    fputcsv($f, $headers, $delimiter);
+
+
+    foreach ($array as $line) {
+      $row=array();
+      $row["requestDate"]=$line["requestDate"];
+      $row["author"]=$line["author"];
+      $row["title"]=$line["title"];
+      $row["publisher"]=$line["publisher"];
+      if($line["pubdate"]=="1"){
+        $row["pubdate"]="";
+      }
+      else{$row["pubdate"]=$line["pubdate"];}
+      $row["isbn"]=$line["isbn"];
+      $row["oclc"]=$line["oclc"];
+      if($line["LCremainder"]!="NULL"){$row["callnumber"]=$line["cn"]." ".$line["LCremainder"];}
+      else{$row["callnumber"]=$line["cn"];}
+      //var_dump($line);
+      //$line['callnumber'] = array_merge(array($line['cn']), $line['LCremainder']);
+    //  unset($line['cn']);
+    //  unset($line['LCremainder']);
+      fputcsv($f, $row, $delimiter);
+      unset($row);
+    }
+    fclose($f);
+    ob_end_clean();
+    exit();
+
+
+
+
+  }
+
+
+
   function match(){
     $mysql=$this->mysql;
     $instID=$_REQUEST["instID"];
@@ -20,6 +100,8 @@ class utilities{
       $c=count($requests);
       //var_dump($requests);
 
+    //  exit();
+
       foreach ($requests as $request){
         $id=$request["id"];
         $mysql->updateRequestSubjectId($id, $subject_id);
@@ -32,10 +114,10 @@ class utilities{
 
     }
 
-    if($c>0){
+    if($x>0){
       $_SESSION["flash"]=true;
       $_SESSION["flashTitle"]="Success!";
-      $_SESSION["flashDesc"]="$c requests matched to subjects.";
+      $_SESSION["flashDesc"]="$x requests matched to subjects.";
       $_SESSION["flashType"]="alert-success";
       $newURL="https://summitstats.org?state=tools";
       header('Location: '.$newURL);
@@ -272,7 +354,7 @@ class utilities{
                 $oclc=$data[6];
 
                 $entry=array();
-                $entry["title"]=$title;
+                $entry["title"]=rtrim(rtrim($title, "/"));
                 $entry["pubDate"]=$year;
                 $entry["isbn1"]=$isbn1;
                 $entry["isbn2"]=$isbn2;
@@ -283,6 +365,7 @@ class utilities{
                 $entry["instID"]=$instID;
                 $entry["fileID"]=$fileID;
                 $entry["APIstatus"]=$APIstatus;
+                $entry["publisher"]=$publisher;
                 //var_dump($entry);
 
                 $lastId=$mysql->addRequest($entry);
@@ -308,7 +391,7 @@ class utilities{
       }
       $_SESSION["flash"]=true;
       $_SESSION["flashTitle"]="Success!";
-      $_SESSION["flashDesc"]="$count requests have been added to process! Please visit the files section to begin processing!";
+      $_SESSION["flashDesc"]="$count requests have been added to process! Please visit the Status Check box to begin processing!";
       $_SESSION["flashType"]="alert-success";
       $newURL="https://summitstats.org/index.php?state=tools";
       header('Location: '.$newURL);
@@ -316,8 +399,7 @@ class utilities{
 
     } else {
 
-    //  var_dump($_FILES);
-    //  exit();
+
       $_SESSION["flash"]=true;
       $_SESSION["flashTitle"]="Error!";
       $_SESSION["flashDesc"]="Sorry, there was an error uploading your file. Please try again!";

@@ -29,7 +29,7 @@ $mysql=new mysqlFunctions();
       <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Selectors">
         <a class="nav-link nav-link-collapse collapsed" data-toggle="collapse" href="#collapseComponents" data-parent="#exampleAccordion">
           <i class="fa fa-fw fa-users"></i>
-          <span class="nav-link-text">Selectors</span>
+          <span class="nav-link-text">Users</span>
         </a>
         <ul class="sidenav-second-level collapse" id="collapseComponents">
 <?php
@@ -69,14 +69,16 @@ foreach ($selectors as $s){
           <span class="nav-link-text">Process Alma Reports</span>
         </a>
       </li>
+
+      <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Docs">
+        <a class="nav-link" href="index.php?state=docs">
+          <i class="fa fa-fw fa-info"></i>
+          <span class="nav-link-text">Help / Docs</span>
+        </a>
+      </li>
     <?php } ?>
 
-    <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Docs">
-      <a class="nav-link" href="index.php?state=docs">
-        <i class="fa fa-fw fa-info"></i>
-        <span class="nav-link-text">Help / Docs</span>
-      </a>
-    </li>
+
       <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Tables">
         <a class="nav-link" href="index.php?state=about">
           <i class="fa fa-fw fa-smile"></i>

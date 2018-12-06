@@ -13,7 +13,8 @@ switch($fx){
   checkProgress($_REQUEST["instID"]);
   break;
 
-
+  case "getSubjectRanges":
+  getSubjectRanges($_REQUEST["id"]);
 
 }
 
@@ -26,6 +27,16 @@ function checkProgress($instID){
   $mysql=new mysqlFunctions();
   $c=$mysql->getRequestsToBeProcessed($instID);
   echo $c;
+
+}
+
+function getSubjectRanges($id){
+
+  $mysql=new mysqlFunctions();
+  $r=$mysql->getSubjectRanges($id);
+  echo json_encode($r);
+
+
 
 }
 

@@ -19,6 +19,10 @@ class main{
       $templates->addNewUser();
       break;
 
+      case "dlcsv":
+      $templates->dlcsv();
+      break;
+
       case "edituser":
       $templates->editUser();
       break;
@@ -44,6 +48,10 @@ class main{
 
       case "match":
       $templates->match();
+      break;
+
+      case "finishTools":
+      $templates->finishTools();
       break;
 
       default:
@@ -76,6 +84,16 @@ class main{
       case "letter":
       $templates->letter($_GET["letter"]);
       break;
+
+      case "viewall":
+      $templates->viewall();
+      break;
+
+
+      case "letter2":
+      $templates->letter2($_GET["letter"]);
+      break;
+
       case "subjects":
       $templates->subjects();
       break;
@@ -176,6 +194,9 @@ class main{
             $_SESSION["instID"]=$rows[0]["id"];
             $_SESSION["instName"]=$rows[0]["name"];
             $_SESSION["validUser"]=true;
+            $r=$this->mysql->getUserIdByEmail($userInfo["email"]);
+            $_SESSION["userID"]=$r[0]["id"];
+
           }
           //var_dump($_SESSION);
 
@@ -190,7 +211,7 @@ class main{
         /* no code, default un-authenticated state   */
         else{
 
-          $loginStatus="<a href='$auth_url'>login</a>";
+          $loginStatus="<a href='$auth_url'>Login</a>";
 
 
 

@@ -15,11 +15,15 @@ class templates extends utilities{
 
     if (isset($_SESSION["validUser"]) && $_SESSION["validUser"]==true){
       if (isset($_SESSION["flash"]) && $_SESSION["flash"]==true){$this->flashMessage();}
+//var_dump($_SESSION);
+  $subjectText=$this->getUserSubjects($_SESSION["userID"]);
+  $this->textBox("My Subjects", $subjectText, "globe");
+
 
       $this->azBox($_SESSION["instID"]);
       $this->allSubjectsBox($_SESSION["instID"]);
 
-      $this->userManagement();
+      //$this->userManagement();
       //var_dump($_SESSION);
     }
 
@@ -31,6 +35,7 @@ class templates extends utilities{
 
   function docs(){
     ?>
+    <!--
     <div class="card mb-3">
       <div class="card-header">
         <i class="fa fa-info"></i> Docs / Help</div>
@@ -49,8 +54,24 @@ class templates extends utilities{
       </div>
       <div class="card-footer small text-muted"></div>
     </div>
+  -->
 
-    <div class="card">
+
+
+
+  <div class="card mb-3">
+<h5 class="card-header">Need help?</h5>
+<div class="card-body">
+  <!--<h5 class="card-title">Special title treatment</h5>-->
+
+  If you have questions or run into issues when using this site, please chime in on <a href='https://orbiscascade.slack.com/messages/CEG4P3QTT' target='_blank'>Alliance Slack</a>.
+
+
+</div>
+</div>
+
+
+    <div class="card mb-3">
   <h5 class="card-header">Step 1 - Create Users</h5>
   <div class="card-body">
     <!--<h5 class="card-title">Special title treatment</h5>-->
@@ -64,6 +85,82 @@ class templates extends utilities{
       <li>Repeat this step as needed to create more users for your organization.</li>
     </ol>
   </div>
+</div>
+
+<div class="card mb-3">
+<h5 class="card-header">Step 2 - Create Subjects</h5>
+<div class="card-body">
+<!--<h5 class="card-title">Special title treatment</h5>-->
+<div class="alert alert-info" role="alert">
+<p class="card-text">Creating subjects with call number ranges lets you categorize Summit requests.</p>
+</div>
+<ol>
+  <li>Click "Manage Subjects" in the left-hand menu.</li>
+  <li>In the "Manage Subjects" box, click "Add Subject".</li>
+  <li>Enter the subject name (e.g. "Political Science"), followed by one or more call number ranges (click "add another range" to enter more than one).</li>
+  <li>In the drop-down menu, select the user responsible for this subject.</li>
+  <li>Click Submit.</li>
+  <li>Repeat this step as needed to create more users for your organization.</li>
+</ol>
+</div>
+</div>
+
+<div class="card mb-3">
+<h5 class="card-header">Step 3 - Get Alma Analytics reports</h5>
+<div class="card-body">
+<!--<h5 class="card-title">Special title treatment</h5>-->
+<!--
+<div class="alert alert-info" role="alert">
+<p class="card-text"> These reports have the Summit requests!</p>
+</div>
+-->
+<p>Once you're in Alma Analytics, follow these steps to generate a report:</p>
+<ul>
+<li>Click "Catalog", and then navigate to and open the Orbis Cascade Alliance folder:<br><img src='images/report location.png' width='400px;'></li>
+<li>Open the "Summit Borrowing Requests w/Date Prompt" report:<br><img src='images/click open.png' width='400px;'></li>
+<li>You'll be prompted to enter a start and finish date range. Do so, and click "ok".</li>
+
+<li>Once the report is generated, export as CSV:<br><img src='images/export csv.png' width='400px;'></li>
+</ul>
+</div>
+</div>
+
+<div class="card mb-3">
+<h5 class="card-header">Step 4 - Load and process reports</h5>
+<div class="card-body">
+<!--<h5 class="card-title">Special title treatment</h5>
+<div class="alert alert-info" role="alert">
+<p class="card-text"> </p>
+</div>-->
+<p>Click the menu option "Process Alma Reports", and follow these steps:</p>
+<ul>
+  <li>In the Upload Summit Borrowing Report box, click "Choose File", and select the Alma Analytics report you downloaded in step 3. Files should be less than 40Mb.</li>
+  <li>Enter a description in the File Description input. You may want to enter a time range for future reference (e.g. Jan-Dec 2018).</li>
+  <li>Click "Upload Report". After the file uploads, it will appear in the "Your Uploaded Files" box.</li>
+  <li>In the Status Check box, you should now see a section titled "Awaiting Processing", with a button reading "Find call numbers for <x> Requests". Click this button.</li>
+    <li>The system is now querying the WorldCat Classify API for call numbers. This can take a while, depending upon the number of requests to process. You can monitor the progress in the progress bar.</li>
+    <li>When done processing, the page will refresh. If you notice the processing is stuck, just refresh the page, and click the button again.</li>
+</ul>
+
+</div>
+</div>
+
+<div class="card mb-3">
+<h5 class="card-header">Step 5 - Match requests to subjects</h5>
+<div class="card-body">
+<!--<h5 class="card-title">Special title treatment</h5>
+<div class="alert alert-info" role="alert">
+<p class="card-text"> This is where you populate any subject reports with </p>
+</div>-->
+<p>In the Process Alma Reports page, go to the Status Check box, and click Look for Subject matches.</p>
+<p>You should click this button anytime you:</p>
+<ul>
+<li>Finish getting call numbers for requests</li>
+<li>Create a new subject</li>
+<li>Edit the call number ranges of an existing subject</li>
+</ul>
+<p>After clicking this button, any matches will appear on a matched subject page.</p>
+</div>
 </div>
 
 <?php
@@ -115,8 +212,8 @@ class templates extends utilities{
 
 
 
-
-  function letter($letter){
+/*
+  function letter1($letter){
     $mysql=$this->mysql;
     $instID=$_SESSION["instID"];
     $rows=$mysql->getAllByLetter($letter, $instID);
@@ -167,12 +264,150 @@ if(count($areaData)>0){
 
 
   }
+*/
+
+  function letter($letter){
+    $mysql=$this->mysql;
+    $instID=$_SESSION["instID"];
+    $rows=$mysql->getAllByLetter($letter, $instID);
+    $count=number_format(count($rows));
+    $title="Requests - $letter ($count)";
+    $pcdata=$mysql->getPieChartForLetterData($letter, $instID);
+    $data=array();
+    $labels=array();
+    foreach ($pcdata as $pc){
+      $cn=$pc["LCsubject"];
+      $c=$pc["c"];
+
+      array_push($data, $c);
+      array_push($labels, $cn);
+
+
+    }
+
+    if ($letter=="dewey"){
+      $this->breadcrumb("Dewey");
+      $this->azBox($_SESSION["instID"]);
+      $content=$this->table2($rows, $title, $dewey=true);
+      echo $content;
+    }
+    else{
+      $this->breadcrumb($letter);
+      $this->azBox($_SESSION["instID"]);
+
+      $content=$this->table2($rows, $title);
+      echo $content;
+      ?><div class="row">
+      <div class="col-lg-8">
+<?php
+$areaData=$mysql->getAreaChartDataByLetter($letter, $instID);
+//var_dump($areaData);
+if(count($areaData)>0){
+  $formatted=$this->formatAreaChartData($areaData);
+  $this->areaChart("letterAreaChart", "Borrowing over time", $formatted);
+}
+?>
+
+      </div>
+      <div class="col-lg-4"><?php
+      if(count($data)>0){
+      $this->pieChart("Requests within call number", $labels, $data, "myPieChart");
+    }
+      ?></div><?php
+      ?></div><?php
+    }
+
+
+  }
+
+
+  function viewall(){
+    $mysql=$this->mysql;
+    $instID=$_SESSION["instID"];
+    //$rows=$mysql->getAllByLetter($letter, $instID);
+    $rows=$mysql->getAll($instID);
+    var_dump($rows);
+    $count=number_format(count($rows));
+    $title="Requests - $letter ($count)";
+    $pcdata=$mysql->getPieChartForLetterData($letter, $instID);
+    $data=array();
+    $labels=array();
+    foreach ($pcdata as $pc){
+      $cn=$pc["LCsubject"];
+      $c=$pc["c"];
+
+      array_push($data, $c);
+      array_push($labels, $cn);
+
+
+    }
+
+    if ($letter=="dewey"){
+      $this->breadcrumb("Dewey");
+      $this->azBox($_SESSION["instID"]);
+      $content=$this->table2($rows, $title, $dewey=true);
+      echo $content;
+    }
+    else{
+      $this->breadcrumb($letter);
+      $this->azBox($_SESSION["instID"]);
+
+      $content=$this->table2($rows, $title);
+      echo $content;
+      ?><div class="row">
+      <div class="col-lg-8">
+<?php
+$areaData=$mysql->getAreaChartDataByLetter($letter, $instID);
+//var_dump($areaData);
+if(count($areaData)>0){
+  $formatted=$this->formatAreaChartData($areaData);
+  $this->areaChart("letterAreaChart", "Borrowing over time", $formatted);
+}
+?>
+
+      </div>
+      <div class="col-lg-4"><?php
+      if(count($data)>0){
+      $this->pieChart("Requests within call number", $labels, $data, "myPieChart");
+    }
+      ?></div><?php
+      ?></div><?php
+    }
+
+
+  }
+
+
+  function getUserSubjects($id){
+    $mysql=$this->mysql;
+    $info=$mysql->getSelector($id);
+
+    $name=$info[0]["name"];
+    $subjects=$mysql->getSelectorSubjects($id);
+    if(count($subjects)==0){$subjectText="<p>You have no subjects.</p>";}
+    else{
+      $subjectText="<p>";
+      foreach ($subjects as $subject){
+
+        $subjectId=$subject["id"];
+        $subjectName=$subject["subject"];
+        $subjectText.="<a href='index.php?state=subject&subject_id=$subjectId'>$subjectName </a> | ";
+
+      }
+      $subjectText=rtrim( $subjectText, "| ");
+    }
+
+    return $subjectText;
+
+  }
 
   function selector($id){
 
     $mysql=$this->mysql;
     $info=$mysql->getSelector($id);
     $name=$info[0]["name"];
+
+/*
     $subjects=$mysql->getSelectorSubjects($id);
     $subjectText="<p>";
     foreach ($subjects as $subject){
@@ -183,6 +418,8 @@ if(count($areaData)>0){
 
     }
     $subjectText=rtrim( $subjectText, "| ");
+*/
+    $subjectText=$this->getUserSubjects($id);
 
 
 
@@ -198,6 +435,11 @@ if(count($areaData)>0){
   function subjects(){
 
     $mysql=$this->mysql;
+    ?>
+    <script>
+    var q="q!!";
+    </script>
+    <?php
 
     $this->breadcrumb("Manage Subjects", $level=null);
     if (isset($_SESSION["flash"]) && $_SESSION["flash"]==true){$this->flashMessage();}
@@ -227,6 +469,8 @@ if(count($areaData)>0){
       $selector=$info[0]["selector"];
       $selector_id=$info[0]["selector_id"];
       $requests=$mysql->getRequestsBySubjectId($id);
+
+      $topResults=$mysql->getRequestsGroupedBySubject($id);
       $count=number_format(count($requests));
       $ranges=$mysql->getSubjectRanges($id);
       $callnumbers="";
@@ -264,10 +508,16 @@ if(count($areaData)>0){
     $level["label"]="Subjects";
     $level["link"]="index.php?state=subjects";
 
-    $title="Requests - $subject ($count)";
-    $this->breadcrumb($subject, $level);
+    $title="All Requests - $subject ($count)";
+    $this->breadcrumb($subject);
     $this->textBox("Subject information", $boxtext, "info-circle");
-    $this->table($requests, $title);
+    $content=$this->table2($requests, $title);
+    $content.=$this->tableTopRequests($topResults, $subject);
+    echo $content;
+    //$this->table($requests, $title);
+
+
+
     if ($id!="unclassified"){
       ?><div class="row">
       <div class="col-lg-8">
@@ -290,6 +540,12 @@ if(count($areaData)>0){
 
 
       ?></div><?php
+      foreach($topResults as $result){
+
+
+      }
+
+      //var_dump($topResults);
 
 
 
@@ -341,12 +597,13 @@ if(count($areaData)>0){
 
 
     //$needSubj=$c[0]["needSubj"];
-    $this->breadcrumb("Tools");
+    $this->breadcrumb("Process Alma Reports");
 
     if (isset($_SESSION["flash"]) && $_SESSION["flash"]==true){$this->flashMessage();}
     $status=$mysql->getStatuses($instID);
 
     $report="";
+    $newReport="";
 
   //  var_dump($status)
 
@@ -355,11 +612,19 @@ if(count($areaData)>0){
     $red=array("102ta", "102oclc", "XMLerror");
     $black=array("unable to resolve");
     $labels=array("ta"=>"Title & Author only", "oclc1"=>"Has OCLC number", "oclc2"=>"Has OCLC number", "isbn1"=>"Has ISBN", "isbn2"=>"Has ISBN", "unable to resolve"=>"Unable to find call number", "needSubj"=>"LC CN Found, not matched to subject", "Dewey"=>"Dewey Call Number Found", "complete"=>"Matched to subject");
+//var_dump($status);
+$newStati=array();
+    $a=0;
+
+
 
     foreach ($status as $stat){
+
       $la=$stat["APIstatus"];
       $label=$labels[$la];
       $c=number_format($stat["total"]);
+      $newStati[$la]=$c;
+
       if (in_array($la, $green)){$color="green"; $icon="check";}
       if (in_array($la, $yellow)){$color="orange"; $icon="search";}
       if (in_array($la, $red)){$color="red"; $icon="exclamation-triangle";}
@@ -371,9 +636,58 @@ if(count($areaData)>0){
 
       $report.="</p>";
     }
+  //  var_dump($newStati);
+    if (isset($newStati["complete"]) || isset($newStati["needSubj"]) || isset($newStati["Dewey"]) || isset($newStati["unable to resolve"])){$newReport.="<h5>Processed</h5>";}
+    else{$a++;}
+    if (isset($newStati["complete"])){
+      $newReport.="<p><i class='fas fa-check' style='color:green'></i> Matched to Subject: ".$newStati["complete"]."</p>";
+    }
+    if (isset($newStati["needSubj"])){
+      $newReport.="<p><i class='fas fa-check' style='color:green'></i> LC call number found, not matched to subject: ".$newStati["needSubj"]."</p>";
+    }
+    if (isset($newStati["Dewey"])){
+      $newReport.="<p><i class='fas fa-check' style='color:green'></i> Dewey Call Number Found: ".$newStati["Dewey"]."</p>";
+    }
+    if (isset($newStati["unable to resolve"])){
+      $newReport.="<p><i class='fas fa-meh' style='color:green'></i> Unable to find call number: ".$newStati["unable to resolve"]."</p>";
+    }
+    if(isset($newStati["needSubj"]) && $newStati["needSubj"]>0){
+
+      $newReport.="<form method='get' action='index.php'><input type='hidden' name='state' value='match'><input type='hidden' name='instID' value='$instID'><button  class='btn btn-primary' type='submit'>Look for subject matches</button></form>";
+    }
 
 
 
+    if(isset($newStati["ta"]) || isset($newStati["oclc1"]) || isset($newStati["isbn1"]) || isset($newStati["isbn2"]) || isset($newStati["oclc2"])){$newReport.="<hr><h5>Awaiting Processing</h5>";}
+    else{$a++;}
+    if (isset($newStati["oclc1"]) || isset($newStati["oclc2"])){
+      if(isset($newStati["oclc1"])){$x=$newStati["oclc1"];}
+      else{$x=0;}
+      if(isset($newStati["oclc2"])){$y=$newStati["oclc2"];}
+      else{$y=0;}
+      $x=(int)str_replace(",","",$x);
+      $y=(int)str_replace(",","",$y);
+      $t=number_format($x+$y);
+
+
+      //echo "$x, $y";
+      $newReport.="<p><i class='fas fa-search' style='color:orange'></i> Has OCLC number: ".$t."</p>";
+    }
+    if (isset($newStati["isbn1"]) || isset($newStati["isbn2"])){
+      if(isset($newStati["isbn1"])){$x=$newStati["isbn1"];}
+      else{$x=0;}
+      if(isset($newStati["isbn2"])){$y=$newStati["isbn2"];}
+      else{$y=0;}
+      $t=$x+$y;
+      $newReport.="<p><i class='fas fa-search' style='color:orange'></i> Has ISBN number: ".$t."</p>";
+    }
+
+    if(isset($newStati["ta"])){
+      $newReport.="<p><i class='fas fa-search' style='color:orange'></i> Has Title and/or Author only: ".$newStati["ta"]."</p>";
+
+
+    }
+    if($a==2){$newReport="<p>No records have been loaded yet. Try uploading an Alma Analytics report.</p>";}
 
 
 
@@ -393,7 +707,9 @@ if(count($areaData)>0){
 
 
         <?php
-        echo $report;
+        //echo $report;
+
+        echo $newReport;
 
         if ($tbp>0){
           ?>
@@ -407,8 +723,8 @@ if(count($areaData)>0){
           <script>
 
           $("#hunt").click(function(){
-            localStorage.setItem("count", 0);
-            localStorage.setItem("check", "");
+            sessionStorage.setItem("count", 1);
+            sessionStorage.setItem("check", "");
 
             $(this).text("Searching...(0.0% complete)");
             $(this).attr("disabled", true);
@@ -437,19 +753,19 @@ if(count($areaData)>0){
 
                 console.log(msg);
                 w=(1-(msg/t))*100;
-                console.log(w);
+                console.log("W:"+w);
                 var rounded = Math.round( w * 10 ) / 10;
 
               //  a=Math.floor(Math.random() * 100);
                 $("#progressBar").css("width", w+"%");
                 $("#hunt").text("Searching... ("+rounded+"% complete)");
 
-                if (!localStorage.check){localStorage.setItem("check", msg);}
-                if (!localStorage.count){localStorage.setItem("count", 1);}
+                if (!sessionStorage.check){sessionStorage.setItem("check", msg);}
+                if (!sessionStorage.count){sessionStorage.setItem("count", 1);}
                 else{
-                  if (msg==localStorage.check){localStorage.count= Number(localStorage.count)+1;}
-                  console.log(localStorage.count);
-                  if(localStorage.count>5){
+                  if (msg==sessionStorage.check){sessionStorage.count= Number(sessionStorage.count)+1;}
+                  console.log(sessionStorage.count);
+                  if(sessionStorage.count>5){
                     clearInterval(search);
                     $("#progressContainer").html("<p>Sorry, there may be an issue with processing the current request. Refresh the page and try again.</p>");
 
@@ -457,7 +773,15 @@ if(count($areaData)>0){
                   }
 
                 }
+/*
+                if(msg==1){
+                //  https://summitstats.org/index.php?state=tools
+                  clearInterval(search);
+                  window.location.replace("https://summitstats.org/index.php?state=finishTools");
 
+
+                }
+*/
 
                 if(w==100){
                   clearInterval(search);
@@ -837,6 +1161,7 @@ function filesCard(){
       <div class="card-header">
         <i class="fa fa-link"></i> Manage Subjects</div>
       <div class="card-body">
+        <!--<p style='color:red;'>NOTE: edit & delete functions still in progress!! -jm</p>-->
       <?php
 
 
@@ -846,13 +1171,14 @@ function filesCard(){
       foreach ($subjects as $subject){
         $id=$subject["id"];
         $sub=$subject["subject"];
-        $range.="<p><a href='index.php?state=subject&subject_id=$id'>$sub</a> | edit | delete</p>  ";
+        $userID=$subject["selector_id"];
+        $range.="<p>$sub | <a data-toggle='modal' data-target='#editSubjectModal' data-id='$id' data-subject='$sub' data-userid='$userID' style='cursor:pointer;color:blue;'>edit</a> | <a style='cursor:pointer;color:blue;' class='deleteSubject'>delete</a></p>  ";
       }
       $range=rtrim( $range, "| ");
     //  $range.="<a href='index.php?state=letter&letter=dewey'>Dewey</a></p>";
       echo $range."</p>";
 
-      echo "<p><a href='index.php?state=subject&subject_id=unclassified'>View requests outside subject ranges</a></p>";
+    //  echo "<p><a href='index.php?state=subject&subject_id=unclassified'>View requests outside subject ranges</a></p>";
 
     }
     else{echo "<p>Your institution does not have any subjects set up yet. Click the button below to add one!</p>";}
@@ -865,8 +1191,19 @@ function filesCard(){
       </div>
       <div class="card-footer small text-muted"></div>
     </div>
+    <script>
+    $(".deleteSubject").click(function(){
+      alert("delete subject is under construction...come back soon!")
+    });
+    </script>
 <?php
 $this->addSubjectModal();
+$this->editSubjectModal();
+//$this->deleteSubjectModal();
+
+
+
+
 
   }
 
@@ -880,7 +1217,7 @@ $this->addSubjectModal();
     ?>
     <div class="card mb-3">
       <div class="card-header">
-        <i class="fa fa-link"></i> Requests by subject</div>
+        <i class="fa fa-link"></i> All Requests by subject</div>
       <div class="card-body">
       <?php
       if(count($subjects)>0){
@@ -910,7 +1247,7 @@ $this->addSubjectModal();
     ?>
     <div class="card mb-3">
       <div class="card-header">
-        <i class="fa fa-link"></i> Requests by call number</div>
+        <i class="fa fa-link"></i> All Requests by call number</div>
       <div class="card-body">
       <?php
       $letters=array("A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "U", "V", "Z");
@@ -920,6 +1257,7 @@ $this->addSubjectModal();
       }
     //  $range=rtrim( $range, "| ");
       $range.="<a href='index.php?state=letter&letter=dewey'>Dewey</a></p>";
+      $range.="<a href='index.php?state=viewall'>View all (in development)<a/>";
       echo $range;
        ?>
       </div>
@@ -1042,11 +1380,239 @@ function pieChart($title, $labels, $data, $piechartID){
 
 
 
+  function table2($rows, $title, $dewey=false){
+    #get csv download deets
+    switch($_REQUEST["state"]){
+      case "subject":
+      $suffix="&type=subject&subject_id=".$_REQUEST["subject_id"];
+      break;
+
+      case "letter":
+      case "letter2":
+      $suffix="&type=letter&subject_id=".$_REQUEST["letter"];
+      break;
+
+
+
+
+    }
+
+    $content="";
+
+
+$content='    <div class="card mb-3">
+      <div class="card-header">
+        <i class="fa fa-table"></i> '.$title.'  <a href=index.php?state=dlcsv'.$suffix.' style="float:right"><i class="fas fa-download"></i></a></div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered" id="requestDataTable" width="100%" cellspacing="0" style="display:none">
+            <thead>
+              <tr>
+                <th>Call Number</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Pub. Date</th>
+                <th>Request Date</th>
+
+              </tr>
+            </thead>
+            <tfoot>
+              <tr>
+                <th>Call Number</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Pub. Date</th>
+                <th>Request Date</th>
+
+              </tr>
+            </tfoot>
+            <tbody>';
+
+            foreach ($rows as $row){
+            $id=$row["id"];
+            if ($dewey==true){$callnumber=$row["dewey"];}
+            else{
+              $callnumber=$row["LCsubject"].$row["LCnumberLine"];
+              if (strlen($row["LCremainder"])>0){$callnumber.=" .".$row["LCremainder"];}
+            }
+
+
+            $title=rtrim($row["title"], "/");
+            $author=$row["author"];
+            $pubDate=$row["pubdate"];
+            if ($pubDate==1){$pubDate="";}
+            $requestDate=$row["requestDate"];
+
+            $content.='<tr>
+              <td>'.$callnumber.'</td>
+              <td>'.$title.'</td>
+              <td>'.$author.'</td>
+              <td>'.$pubDate.'</td>
+              <td>'.$requestDate.'</td>
+
+            </tr>';
+
+
+            }
+
+
+
+
+        $content.='    </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer small text-muted"></div>
+    </div>
+
+
+    <script>
+    jQuery(document).ready(function(){$("#requestDataTable").dataTable( {
+      "order": [],
+      "initComplete": function () {
+      $("#requestDataTable").show();
+
+      }
+    });
+  });
+
+    </script>';
+
+    return $content;
+
+
+  }
+
+
+
+  function tableTopRequests($rows, $title, $dewey=false){
+    #get csv download deets
+    switch($_REQUEST["state"]){
+      case "subject":
+      $suffix="&type=subject&subject_id=".$_REQUEST["subject_id"];
+      break;
+
+      case "letter":
+      case "letter2":
+      $suffix="&type=letter&subject_id=".$_REQUEST["letter"];
+      break;
+
+
+
+
+    }
+
+    $content="";
+
+
+$content='    <div class="card mb-3">
+      <div class="card-header">
+        <i class="fa fa-table"></i> Top Requests in '.$title.'  <span id="trCount"></span></div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered" id="topRequestsDataTable" width="100%" cellspacing="0" style="display:none">
+            <thead>
+              <tr>
+                <th>Call Number</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Pub. Date</th>
+                <th>Count</th>
+
+              </tr>
+            </thead>
+            <tfoot>
+              <tr>
+                <th>Call Number</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Pub. Date</th>
+                <th>Count</th>
+
+              </tr>
+            </tfoot>
+            <tbody>';
+            $x=0;
+            foreach ($rows as $row){
+              if($row["c"]>1){
+                //$id=$row["id"];
+                if ($dewey==true){$callnumber=$row["dewey"];}
+                else{
+                  $callnumber=$row["LCSubject"].$row["LCnumberLine"];
+                  if (strlen($row["LCremainder"])>0){$callnumber.=" .".$row["LCremainder"];}
+                }
+
+
+                $title=rtrim($row["title"], "/");
+                $author=$row["author"];
+                $pubDate=$row["pubdate"];
+                $count=$row["c"];
+
+                $content.='<tr>
+                  <td>'.$callnumber.'</td>
+                  <td>'.$title.'</td>
+                  <td>'.$author.'</td>
+                  <td>'.$pubDate.'</td>
+                  <td>'.$count.'</td>
+
+                </tr>';
+                $x++;
+
+            }
+
+
+            }
+
+
+
+
+        $content.='    </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer small text-muted"></div>
+    </div>
+
+
+    <script>
+    jQuery(document).ready(function(){$("#topRequestsDataTable").dataTable( {
+      "order": [],
+      "initComplete": function () {
+      $("#topRequestsDataTable").show();
+      $("#trCount").text("('.$x.')");
+
+      }
+    });
+  });
+
+    </script>';
+
+    return $content;
+
+
+  }
+
   function table($rows, $title, $dewey=false){
+    #get csv download deets
+    switch($_REQUEST["state"]){
+      case "subject":
+      $suffix="&type=subject&subject_id=".$_REQUEST["subject_id"];
+      break;
+
+      case "letter":
+      $suffix="&type=letter&subject_id=".$_REQUEST["letter"];
+      break;
+
+
+
+
+    }
+
+
 ?>
     <div class="card mb-3">
       <div class="card-header">
-        <i class="fa fa-table"></i> <?= $title; ?></div>
+        <i class="fa fa-table"></i> <?= $title; ?>  <a href='index.php?state=dlcsv<?= $suffix?>' style="float:right"><i class="fas fa-download"></i> (in progress)</a></div>
       <div class="card-body">
         <div class="table-responsive">
           <table class="table table-bordered" id="requestDataTable" width="100%" cellspacing="0">
@@ -1161,6 +1727,7 @@ function pieChart($title, $labels, $data, $piechartID){
 
 
 
+
       </div>
       <div class="card-footer small text-muted"></div>
     </div>
@@ -1249,6 +1816,7 @@ $this->deleteUserModal();
           <li>Set up selector profiles, and match them to the custom ranges</li>
           <li>Download title lists in CSV format</li>
         </ul>
+        <p>This site was created by Jeremy McWilliams at Lewis & Clark's Watzek Library. If you have questions/comments/suggestions, chime in on <a href='https://orbiscascade.slack.com/messages/CEG4P3QTT' target='_blank'>Alliance Slack</a>!</p>
 
 
 
@@ -1535,7 +2103,138 @@ $("#addRangeRow").click(function(){
 
   }
 
+  function editSubjectModal(){
+    $mysql=$this->mysql;
+    $rows=$mysql->getAllUsers($_SESSION["instID"]);
+    ?>
 
+        <!-- Modal -->
+        <div class="modal fade" id="editSubjectModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Edit Subject (Under Construction!!)</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <form method="post" action="index.php">
+                  <div class="form-group">
+                    <label for="fullname">Subject Name</label>
+                    <input name="subject" type="text" class="form-control" id="subjectname" placeholder="e.g. Biology" required>
+                  </div>
+
+                  <div id="lc-rows-edit">
+
+                </div><!--lc-rows-edit-->
+                <div class="form-row">
+                  <p id="addRangeRowEdit" style="color:blue;text-decoration:underline;cursor:pointer;">Add another range</p>
+                </div>
+                <div class="form-row">
+
+                  <label for="exampleFormControlSelect1">Select User</label>
+                  <select class="form-control" id="edit-selectors" name="user">
+                    <?php
+                    foreach ($rows as $row){
+                      $id=$row["id"];
+                      $name=$row["name"];
+                      //echo "<option value='$id'>$name</option>";
+
+
+
+                    }
+
+
+                    ?>
+
+                  </select>
+                </div>
+
+                  <input type="hidden" name="subjectID" id="subjectID" value="">
+                  <input type="hidden" name="state" value="editSubject">
+
+                  <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+              </div>
+              <div class="modal-footer">
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+    <script>
+
+    $('#editSubjectModal').on('show.bs.modal', function (event) {
+      $("#lc-rows-edit").html("");
+      $('option:selected', this).remove();
+      $("#edit-selectors").html("");
+      var userid=null;
+      var button = $(event.relatedTarget) // Button that triggered the modal
+      var subject = button.data('subject') // Extract info from data-* attributes
+      var id = button.data('id');
+      var userid=button.data('userid');
+      console.log(id);
+      console.log(userid);
+      // If necessary, you could initiate an AJAX request here (and then do the updating in a callback).
+      // Update the modal's content. We'll use jQuery here, but you could use a data binding library or other methods instead.
+      var modal = $(this)
+
+      modal.find("#subjectname").attr("value", subject);
+      modal.find("#subjectID").attr("value", id);
+    //  $("#edit-selectors option[value="+userid+"]").attr('selected', 'selected');
+<?php
+    foreach ($rows as $row){
+      $id=$row["id"];
+      $name=$row["name"];
+      ?>modal.find("#edit-selectors").append("<option value='<?=$id?>'><?=$name?></option>");<?php
+      //echo "<option value='$id'>$name</option>";
+
+
+
+    }
+    ?>
+    $("#edit-selectors option[value="+userid+"]").attr('selected', 'selected');
+
+      $.ajax({
+        method: "POST",
+        url: "background.php",
+        data: { id: id, fx: "getSubjectRanges" }
+      })
+        .done(function( r ) {
+          console.log(r);
+          ranges=JSON.parse(r)
+          for(var i = 0; i < ranges.length; i++) {
+            var obj = ranges[i];
+            var begLCnl=obj.begLCnl;
+            var begLCsub=obj.begLCsub;
+            var endLCsub=obj.endLCsub;
+            var endLCnl=obj.endLCnl;
+            var row='<div class="form-row"><div class="form-group col-md-2"> <label for="inputEmail4">Beg. Class</label> <input type="text" class="form-control" placeholder="e.g QH" name="begLCsub[]" required value="'+begLCsub+'"></div><div class="form-group col-md-3"> <label for="inputEmail4">Beg. Number</label> <input type="text" class="form-control" placeholder="e.g. 1" name="begLCnl[]" required value="'+begLCnl+'"></div><div class="form-group col-md-1"> <label for="inputEmail4"></label><div>to</div></div><div class="form-group col-md-2"> <label for="inputEmail4">End Class</label> <input type="text" class="form-control" placeholder="e.g. QH" name="endLCsub[]" required value="'+endLCsub+'"></div><div class="form-group col-md-3"> <label for="inputEmail4">End Number</label> <input type="text" class="form-control" placeholder="e.g. 705.5" name="endLCnl[]" required value="'+endLCnl+'"></div></div>';
+            modal.find("#lc-rows-edit").append(row);
+            //("#lc-rows").append("hello");
+
+          }
+          $("#addRangeRowEdit").click(function(){
+            console.log("row");
+            modal.find("#lc-rows-edit").append(newRow);
+
+
+          })
+
+
+        });
+
+        var newRow='<div class=form-row><div class="form-group col-md-2"><input class=form-control name=begLCsub[] placeholder="e.g QH"></div><div class="form-group col-md-3"><input class=form-control name=begLCnl[] placeholder="e.g. 1"></div><div class="form-group col-md-1"><div>to</div></div><div class="form-group col-md-2"><input class=form-control name=endLCsub[] placeholder="e.g. QH"></div><div class="form-group col-md-3"><input class=form-control name=endLCnl[] placeholder="e.g. 705.5"></div></div>';
+
+
+
+      //modal.find('.modal-body input').val(recipient)
+    });
+    </script>
+    <?php
+  }
 
   function deleteFileModal(){
     ?>
